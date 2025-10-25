@@ -2,7 +2,6 @@
 
 import {
   onSnapshot,
-  docEqual,
   type DocumentData,
   type DocumentReference,
 } from 'firebase/firestore';
@@ -23,7 +22,7 @@ export function useDoc<T>(
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
-  const docRef = useRef<DocumentReference<T, DocumentData> | null>(null);
+  const previousPathRef = useRef<string | null>(null);
 
   const memoRef = useMemoFirebase(() => {
     return ref;
@@ -36,11 +35,12 @@ export function useDoc<T>(
       return;
     }
     
-    if (docRef.current && docEqual(docRef.current, memoRef)) {
+    // If the path hasn't changed, don't re-subscribe.
+    if (previousPathRef.current === memoRef.path) {
       return;
     }
 
-    docRef.current = memoRef;
+    previousPathRef.current = memoRef.path;
     setLoading(true);
 
     const unsubscribe = onSnapshot(
