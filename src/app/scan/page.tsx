@@ -1,0 +1,84 @@
+'use client';
+import { useState } from 'react';
+import ScanTutorial from '@/components/scan/ScanTutorial';
+import ScanningUI from '@/components/scan/ScanningUI';
+import ScanProcessing from '@/components/scan/ScanProcessing';
+import MeasurementProfile from '@/components/scan/MeasurementProfile';
+import { motion, AnimatePresence } from 'framer-motion';
+
+type ScanStep = 'tutorial' | 'scanning' | 'processing' | 'results';
+
+export default function ScanPage() {
+  const [step, setStep] = useState<ScanStep>('tutorial');
+
+  const onTutorialComplete = () => setStep('scanning');
+  const onScanComplete = () => setStep('processing');
+  const onProcessingComplete = () => setStep('results');
+
+  const pageVariants = {
+    initial: { opacity: 0, y: 20 },
+    in: { opacity: 1, y: 0 },
+    out: { opacity: 0, y: -20 },
+  };
+
+  const pageTransition = {
+    type: 'tween',
+    ease: 'anticipate',
+    duration: 0.5,
+  };
+
+  return (
+    <div className="container py-12">
+      <AnimatePresence mode="wait">
+        {step === 'tutorial' && (
+          <motion.div
+            key="tutorial"
+            initial="initial"
+            animate="in"
+            exit="out"
+            variants={pageVariants}
+            transition={pageTransition}
+          >
+            <ScanTutorial onComplete={onTutorialComplete} />
+          </motion.div>
+        )}
+        {step === 'scanning' && (
+          <motion.div
+            key="scanning"
+            initial="initial"
+            animate="in"
+            exit="out"
+            variants={pageVariants}
+            transition={pageTransition}
+          >
+            <ScanningUI onComplete={onScanComplete} />
+          </motion.div>
+        )}
+        {step === 'processing' && (
+          <motion.div
+            key="processing"
+            initial="initial"
+            animate="in"
+            exit="out"
+            variants={pageVariants}
+            transition={pageTransition}
+          >
+            <ScanProcessing onComplete={onProcessingComplete} />
+          </motion.div>
+        )}
+        {step === 'results' && (
+          <motion.div
+            key="results"
+            initial="initial"
+            animate="in"
+            exit="out"
+            variants={pageVariants}
+            transition={pageTransition}
+          >
+            <MeasurementProfile onNewScan={() => setStep('tutorial')} />
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}

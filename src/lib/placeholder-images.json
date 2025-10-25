@@ -1,3 +1,70 @@
 {
-  "placeholderImages": []
+  "placeholderImages": [
+    {
+      "id": "hero-1",
+      "description": "A stylish person in a well-lit, modern interior, looking thoughtfully at different fabric swatches.",
+      "imageUrl": "https://images.unsplash.com/photo-1561070791-2526d30994b5?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw5fHxmYXNoaW9uJTIwZGVzaWdufGVufDB8fHx8MTc2MTQwNzg0NHww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "fashion design"
+    },
+    {
+      "id": "garment-1",
+      "description": "A close-up of a stylish blue dress on a mannequin.",
+      "imageUrl": "https://images.unsplash.com/photo-1504152054892-5be4dc7dbe2a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxMHx8Ymx1ZSUyMGRyZXNzfGVufDB8fHx8MTc2MTMyMjc1MHww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "blue dress"
+    },
+    {
+      "id": "garment-2",
+      "description": "A classic white blouse hanging on a rack.",
+      "imageUrl": "https://images.unsplash.com/photo-1685278463760-cd2134ab9d8a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHx3aGl0ZSUyMGJsb3VzZXxlbnwwfHx8fDE3NjE0MDkwMTB8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "white blouse"
+    },
+    {
+      "id": "garment-3",
+      "description": "A pair of tailored black trousers folded neatly.",
+      "imageUrl": "https://images.unsplash.com/photo-1699205016746-8aa2e6e48453?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHxibGFjayUyMHRyb3VzZXJzfGVufDB8fHx8MTc2MTQyMTM0N3ww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "black trousers"
+    },
+    {
+      "id": "garment-4",
+      "description": "A beige trench coat on a hanger.",
+      "imageUrl": "https://images.unsplash.com/photo-1592327877233-90b9bfd92e48?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHx0cmVuY2glMjBjb2F0fGVufDB8fHx8MTc2MTQxNjAxMHww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "trench coat"
+    },
+    {
+      "id": "garment-5",
+      "description": "A vibrant floral print skirt.",
+      "imageUrl": "https://images.unsplash.com/photo-1625481253522-b3d0b7b658bb?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHxmbG9yYWwlMjBza2lydHxlbnwwfHx8fDE3NjE0MjEzNDd8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "floral skirt"
+    },
+    {
+      "id": "garment-6",
+      "description": "A cozy knit sweater in a neutral color.",
+      "imageUrl": "https://images.unsplash.com/photo-1536992266094-82847e1fd431?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHxrbml0JTIwc3dlYXRlcnxlbnwwfHx8fDE3NjEzODU4NDN8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "knit sweater"
+    },
+    {
+      "id": "garment-7",
+      "description": "A sleek, modern jumpsuit.",
+      "imageUrl": "https://images.unsplash.com/photo-1715609104589-97585b210c6e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxMHx8bW9kZXJuJTIwanVtcHN1aXR8ZW58MHx8fHwxNzYxNDIxMzQ3fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "modern jumpsuit"
+    },
+    {
+      "id": "garment-8",
+      "description": "A formal blazer in a dark color.",
+      "imageUrl": "https://images.unsplash.com/photo-1679117349740-c46c819d0373?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw2fHxmb3JtYWwlMjBibGF6ZXJ8ZW58MHx8fHwxNzYxNDIxMzQ3fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "formal blazer"
+    },
+    {
+      "id": "user-model-1",
+      "description": "A person standing in a neutral pose for a body scan.",
+      "imageUrl": "https://images.unsplash.com/photo-1639089277700-009681c5a9c9?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHxwZXJzb24lMjBzdGFuZGluZ3xlbnwwfHx8fDE3NjE0MDEzNTB8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "person standing"
+    },
+    {
+      "id": "try-on-result-1",
+      "description": "A photorealistic render of a person wearing a blue dress.",
+      "imageUrl": "https://images.unsplash.com/photo-1511130558090-00af810c21b1?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw2fHx3b21hbiUyMGRyZXNzfGVufDB8fHx8MTc2MTM3Nzc5MXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "woman dress"
+    }
+  ]
 }
