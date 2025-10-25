@@ -1,8 +1,6 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Pose } from '@mediapipe/pose';
-import * as drawingUtils from '@mediapipe/drawing_utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
@@ -28,7 +26,7 @@ export default function ScanningUI({ onComplete }: ScanningUIProps) {
     const { toast } = useToast();
 
     // --- State for processing
-    const poseRef = useRef<Pose | null>(null);
+    const poseRef = useRef<any | null>(null);
     const frontImageRef = useRef<HTMLImageElement>(new Image());
     const sideImageRef = useRef<HTMLImageElement>(new Image());
     const frontResultsRef = useRef<any>(null);
@@ -37,8 +35,14 @@ export default function ScanningUI({ onComplete }: ScanningUIProps) {
 
     // --- Initialize MediaPipe Pose ---
     useEffect(() => {
+        const Pose = (window as any).Pose;
+        if (!Pose) {
+            toast({ variant: 'destructive', title: "Error", description: "MediaPipe library not loaded." });
+            return;
+        }
+
         const pose = new Pose({
-            locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404/${file}`
+            locateFile: (file: string) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404/${file}`
         });
 
         pose.setOptions({
@@ -50,7 +54,7 @@ export default function ScanningUI({ onComplete }: ScanningUIProps) {
 
         pose.onResults(onPoseResults);
         poseRef.current = pose;
-    }, []);
+    }, [toast]);
 
     const onPoseResults = (results: any) => {
         if (processingState.current === 'processingFront') {
@@ -87,7 +91,8 @@ export default function ScanningUI({ onComplete }: ScanningUIProps) {
         if (!canvasCtx) return;
 
         const POSE_CONNECTIONS = (window as any).POSE_CONNECTIONS;
-        if (!POSE_CONNECTIONS) return;
+        const drawingUtils = (window as any);
+        if (!POSE_CONNECTIONS || !drawingUtils) return;
 
         canvasRef.current.width = image.width;
         canvasRef.current.height = image.height;
@@ -318,7 +323,7 @@ export default function ScanningUI({ onComplete }: ScanningUIProps) {
 
                     {scanStage === 'idle' && (
                         <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-black/60 text-white text-center p-8">
-                             <UserCheck size={96} className="mb-6 text-primary" />
+                             <UserCheck size={96} className="text-primary" />
                              <h2 className="text-3xl font-bold">Ready for your scan?</h2>
                              <p className="mt-2 text-foreground/80">Follow the on-screen instructions for best results.</p>
                         </div>
@@ -375,3 +380,5 @@ export default function ScanningUI({ onComplete }: ScanningUIProps) {
         </Card>
     );
 }
+
+    
