@@ -126,7 +126,7 @@ export default function TryOnInterface({ garment }: TryOnInterfaceProps) {
 
       <div className="space-y-8">
         <div>
-          <p className="text-sm font-medium text-accent">{garment.brand}</p>
+          <p className="text-sm font-medium text-muted-foreground">{garment.brand}</p>
           <h1 className="text-4xl font-extrabold tracking-tight font-headline">{garment.name}</h1>
           <p className="mt-2 text-2xl font-semibold text-primary">₹{garment.price.toLocaleString()}</p>
         </div>
@@ -172,7 +172,7 @@ export default function TryOnInterface({ garment }: TryOnInterfaceProps) {
         </div>
 
         <div className="space-y-4 pt-4">
-           <Button size="lg" className="w-full bg-accent text-accent-foreground hover:bg-accent/90" onClick={handleGenerate} disabled={loading}>
+           <Button size="lg" className="w-full bg-primary text-primary-foreground hover:bg-primary/90" onClick={handleGenerate} disabled={loading}>
             <Sparkles className="mr-2 size-5" />
             {loading ? 'Generating...' : 'Generate Try-On'}
           </Button>

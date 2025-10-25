@@ -16,6 +16,7 @@ import { useUser } from '@/contexts/UserContext';
 import { Minus, Plus, ShoppingCart, Trash2 } from 'lucide-react';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { Input } from '../ui/input';
+import Link from 'next/link';
 
 export default function CartSheet() {
   const { cart, removeFromCart, updateQuantity } = useUser();
@@ -32,7 +33,7 @@ export default function CartSheet() {
           <ShoppingCart className="h-5 w-5" />
           <span className="sr-only">Open Cart</span>
           {cart.length > 0 && (
-            <span className="absolute -top-2 -right-2 flex h-5 w-5 items-center justify-center rounded-full bg-accent text-xs font-bold text-accent-foreground">
+            <span className="absolute -top-2 -right-2 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
               {cart.reduce((acc, item) => acc + item.quantity, 0)}
             </span>
           )}
@@ -118,8 +119,8 @@ export default function CartSheet() {
                     <span>Subtotal</span>
                     <span>₹{subtotal.toLocaleString()}</span>
                 </div>
-                 <Button size="lg" className="w-full bg-accent text-accent-foreground hover:bg-accent/90">
-                    Proceed to Checkout
+                 <Button asChild size="lg" className="w-full bg-primary text-primary-foreground hover:bg-primary/90">
+                    <Link href="/checkout">Proceed to Checkout</Link>
                 </Button>
             </div>
           </SheetFooter>

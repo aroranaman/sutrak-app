@@ -39,7 +39,7 @@ export default function Header() {
           {user ? (
             <>
               <div className="flex items-center gap-2 rounded-full border px-3 py-1 text-sm">
-                <Gem className="h-4 w-4 text-accent" />
+                <Gem className="h-4 w-4 text-primary" />
                 <span className="font-semibold">{credits}</span>
                 <span className="text-foreground/60">Credits</span>
               </div>
