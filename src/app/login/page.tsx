@@ -2,12 +2,11 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
-  getAuth,
   RecaptchaVerifier,
   signInWithPhoneNumber,
   ConfirmationResult,
 } from 'firebase/auth';
-import { useFirebaseApp } from '@/firebase';
+import { useAuth } from '@/firebase';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -23,8 +22,7 @@ import { Loader2, LogIn } from 'lucide-react';
 export default function LoginPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const app = useFirebaseApp();
-  const auth = getAuth(app);
+  const { auth } = useAuth(); // Use the hook to get the auth instance
   const { toast } = useToast();
 
   const [phoneNumber, setPhoneNumber] = useState('');
@@ -37,17 +35,11 @@ export default function LoginPage() {
   const recaptchaVerifierRef = useRef<RecaptchaVerifier | null>(null);
 
   useEffect(() => {
-    // Clean up recaptcha on unmount
-    return () => {
-      recaptchaVerifierRef.current?.clear();
-    };
-  }, []);
+    // Ensure auth is loaded before trying to create a verifier.
+    if (!auth) return;
 
-  const handleSendOtp = async () => {
-    setLoading(true);
-    try {
-      // Initialize RecaptchaVerifier on demand
-      if (!recaptchaVerifierRef.current) {
+    // Initialize RecaptchaVerifier
+    if (!recaptchaVerifierRef.current) {
         recaptchaVerifierRef.current = new RecaptchaVerifier(
           'recaptcha-container',
           {
@@ -55,8 +47,26 @@ export default function LoginPage() {
           },
           auth
         );
-      }
-      
+    }
+    
+    // Clean up recaptcha on unmount
+    return () => {
+      recaptchaVerifierRef.current?.clear();
+    };
+  }, [auth]);
+
+  const handleSendOtp = async () => {
+    if (!auth || !recaptchaVerifierRef.current) {
+        toast({
+            variant: 'destructive',
+            title: 'Error',
+            description: 'Authentication service is not ready. Please wait a moment and try again.',
+        });
+        return;
+    }
+
+    setLoading(true);
+    try {
       // The Indian country code is +91
       const fullPhoneNumber = `+91${phoneNumber}`;
       const confirmation = await signInWithPhoneNumber(
