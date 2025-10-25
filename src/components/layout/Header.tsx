@@ -1,9 +1,11 @@
+
 'use client';
 
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { Gem, LogIn, LogOut, ScanLine, Shirt, User } from 'lucide-react';
+import { Gem, LogIn, LogOut, ScanLine, Shirt, ShoppingCart, User } from 'lucide-react';
 import { useUser } from '@/contexts/UserContext';
+import CartSheet from './CartSheet';
 
 export default function Header() {
   const { user, credits, login, logout } = useUser();
@@ -41,6 +43,7 @@ export default function Header() {
                 <span className="font-semibold">{credits}</span>
                 <span className="text-foreground/60">Credits</span>
               </div>
+              <CartSheet />
               <Button variant="ghost" size="icon" onClick={logout}>
                 <LogOut className="h-5 w-5" />
                 <span className="sr-only">Log Out</span>

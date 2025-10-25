@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -30,7 +31,7 @@ export default function TryOnInterface({ garment }: TryOnInterfaceProps) {
   const [loading, setLoading] = useState(false);
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
   const { toast } = useToast();
-  const { user, login, addCredits } = useUser();
+  const { user, login, addCredits, addToCart } = useUser();
 
   const userModelImage = PlaceHolderImages.find((img) => img.id === 'user-model-1');
   const garmentImage = PlaceHolderImages.find((img) => img.id === garment.imageId);
@@ -74,6 +75,17 @@ export default function TryOnInterface({ garment }: TryOnInterfaceProps) {
   };
   
   const handleAddToCart = () => {
+    if (!user) {
+      login();
+      toast({
+        title: 'Please sign in',
+        description: 'You need to be signed in to add items to your cart.',
+      });
+      return;
+    }
+
+    addToCart(garment, selectedFabric);
+
     if(garment.price >= 3500) {
       addCredits(500);
       toast({
