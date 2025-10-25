@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from 'react';
@@ -14,6 +13,8 @@ import { useUser } from '@/contexts/UserContext';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import type { Fabric, Garment } from '@/lib/data';
 import { fabrics as allFabrics } from '@/lib/data';
+import { useAuth } from '@/firebase';
+import { useRouter } from 'next/navigation';
 
 type Fit = 'truefit' | 'slim' | 'loose';
 type View = 'front' | 'side' | 'back' | '3/4';
@@ -31,18 +32,20 @@ export default function TryOnInterface({ garment }: TryOnInterfaceProps) {
   const [loading, setLoading] = useState(false);
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
   const { toast } = useToast();
-  const { user, login, addCredits, addToCart } = useUser();
+  const { addCredits, addToCart } = useUser();
+  const { user: firebaseUser } = useAuth();
+  const router = useRouter();
 
   const userModelImage = PlaceHolderImages.find((img) => img.id === 'user-model-1');
   const garmentImage = PlaceHolderImages.find((img) => img.id === garment.imageId);
   const tryOnResultImage = PlaceHolderImages.find((img) => img.id === 'try-on-result-1');
 
   const handleGenerate = async () => {
-    if (!user) {
-      login();
+    if (!firebaseUser) {
+      router.push(`/login?redirect=/try-on/${garment.id}`);
       toast({
-        title: "Logged In",
-        description: "You've been signed in to generate your try-on.",
+        title: "Please Sign In",
+        description: "You need to be signed in to generate a try-on.",
       });
       return;
     }
@@ -51,7 +54,6 @@ export default function TryOnInterface({ garment }: TryOnInterfaceProps) {
     setGeneratedImage(null);
 
     try {
-      // In a real app, these would be real data URIs from user/garment data
       const mockDataUri = "data:text/plain;base64,SGVsbG8sIFdvcmxkIQ==";
       const result = await generateTryOnImage({
         userBodyDataUri: mockDataUri,
@@ -60,7 +62,6 @@ export default function TryOnInterface({ garment }: TryOnInterfaceProps) {
         fit: selectedFit,
         views: [selectedView],
       });
-      // We use a placeholder image as the AI flow returns a mock URL
       setGeneratedImage(tryOnResultImage?.imageUrl ?? result.imageUrl);
     } catch (error) {
       console.error("Failed to generate try-on image:", error);
@@ -75,8 +76,8 @@ export default function TryOnInterface({ garment }: TryOnInterfaceProps) {
   };
   
   const handleAddToCart = () => {
-    if (!user) {
-      login();
+    if (!firebaseUser) {
+      router.push(`/login?redirect=/try-on/${garment.id}`);
       toast({
         title: 'Please sign in',
         description: 'You need to be signed in to add items to your cart.',

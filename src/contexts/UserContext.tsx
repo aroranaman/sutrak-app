@@ -1,13 +1,26 @@
+'use client';
 
-"use client";
-
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, {
+  createContext,
+  useContext,
+  useState,
+  ReactNode,
+  useEffect,
+} from 'react';
 import type { Garment, Fabric } from '@/lib/data';
+import { useAuth, useFirestore, useDoc } from '@/firebase';
+import { doc, setDoc, serverTimestamp, getDoc } from 'firebase/firestore';
+import { User as FirebaseUser } from 'firebase/auth';
+
+interface UserData {
+  credits: number;
+  profiles: MeasurementProfile[];
+}
 
 interface User {
   id: string;
   name: string;
-  phone: string;
+  phone: string | null;
 }
 
 interface MeasurementProfile {
@@ -22,20 +35,18 @@ interface MeasurementProfile {
 }
 
 export interface CartItem {
-    id: string;
-    garment: Garment;
-    fabric: Fabric;
-    quantity: number;
+  id: string;
+  garment: Garment;
+  fabric: Fabric;
+  quantity: number;
 }
-
 
 interface UserContextType {
   user: User | null;
   credits: number;
   profiles: MeasurementProfile[];
   cart: CartItem[];
-  login: () => void;
-  logout: () => void;
+  loading: boolean;
   addProfile: (profile: MeasurementProfile) => boolean;
   addCredits: (amount: number) => void;
   addToCart: (garment: Garment, fabric: Fabric) => void;
@@ -45,67 +56,171 @@ interface UserContextType {
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
 
+const initialUser: User = {
+  id: '',
+  name: 'Guest',
+  phone: '',
+};
+
 export const UserProvider = ({ children }: { children: ReactNode }) => {
+  const { user: firebaseUser, loading: authLoading } = useAuth();
+  const firestore = useFirestore();
+
   const [user, setUser] = useState<User | null>(null);
   const [credits, setCredits] = useState(0);
   const [profiles, setProfiles] = useState<MeasurementProfile[]>([]);
   const [cart, setCart] = useState<CartItem[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const login = () => {
-    setUser({ id: 'user-123', name: 'Alex Doe', phone: '+1234567890' });
-    setCredits(500); // Initial credits on sign-up
-  };
+  const userDocRef =
+    firestore && firebaseUser
+      ? doc(firestore, 'users', firebaseUser.uid)
+      : null;
+  const { data: userData, status: userStatus } = useDoc<UserData>(userDocRef);
 
-  const logout = () => {
-    setUser(null);
-    setCredits(0);
-    setProfiles([]);
-    setCart([]);
+  useEffect(() => {
+    const localCart = localStorage.getItem('cart');
+    if (localCart) {
+      setCart(JSON.parse(localCart));
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!authLoading) {
+      if (firebaseUser) {
+        setUser({
+          id: firebaseUser.uid,
+          name: firebaseUser.displayName || 'User',
+          phone: firebaseUser.phoneNumber,
+        });
+
+        if (userStatus === 'success' && userData) {
+          setCredits(userData.credits || 0);
+          setProfiles(userData.profiles || []);
+          setLoading(false);
+        } else if (userStatus === 'error' || (userStatus === 'success' && !userData)) {
+          // New user, create document
+          const createNewUserDoc = async (newUser: FirebaseUser) => {
+            if (!firestore) return;
+            const newUserDocRef = doc(firestore, 'users', newUser.uid);
+            const docSnap = await getDoc(newUserDocRef);
+
+            if (!docSnap.exists()) {
+              await setDoc(newUserDocRef, {
+                uid: newUser.uid,
+                email: newUser.email,
+                displayName: newUser.displayName,
+                phoneNumber: newUser.phoneNumber,
+                createdAt: serverTimestamp(),
+                credits: 500,
+                profiles: [],
+              });
+              setCredits(500);
+            }
+             setLoading(false);
+          };
+          createNewUserDoc(firebaseUser);
+        }
+      } else {
+        setUser(null);
+        setCredits(0);
+        setProfiles([]);
+        setLoading(false);
+      }
+    }
+  }, [firebaseUser, authLoading, firestore, userData, userStatus]);
+
+  useEffect(() => {
+    if (cart.length > 0) {
+      localStorage.setItem('cart', JSON.stringify(cart));
+    } else {
+      localStorage.removeItem('cart');
+    }
+  }, [cart]);
+
+  const updateUserDocument = async (data: Partial<UserData>) => {
+    if (!userDocRef) return false;
+    try {
+      await setDoc(userDocRef, data, { merge: true });
+      return true;
+    } catch (error) {
+      console.error('Error updating user document:', error);
+      return false;
+    }
   };
 
   const addProfile = (profile: MeasurementProfile) => {
     if (credits >= 100) {
-      setCredits((prev) => prev - 100);
-      setProfiles((prev) => [...prev, profile]);
-      return true;
+      const newCredits = credits - 100;
+      const newProfiles = [...profiles, profile];
+      if (updateUserDocument({ credits: newCredits, profiles: newProfiles })) {
+        setCredits(newCredits);
+        setProfiles(newProfiles);
+        return true;
+      }
     }
     return false;
   };
-  
+
   const addCredits = (amount: number) => {
-    setCredits((prev) => prev + amount);
-  }
+    const newCredits = credits + amount;
+    if (updateUserDocument({ credits: newCredits })) {
+      setCredits(newCredits);
+    }
+  };
 
   const addToCart = (garment: Garment, fabric: Fabric) => {
-    setCart(prevCart => {
-      const existingItem = prevCart.find(item => item.garment.id === garment.id && item.fabric.id === fabric.id);
+    setCart((prevCart) => {
+      const existingItem = prevCart.find(
+        (item) =>
+          item.garment.id === garment.id && item.fabric.id === fabric.id
+      );
       if (existingItem) {
-        return prevCart.map(item => 
-          item.id === existingItem.id ? { ...item, quantity: item.quantity + 1 } : item
+        return prevCart.map((item) =>
+          item.id === existingItem.id
+            ? { ...item, quantity: item.quantity + 1 }
+            : item
         );
       }
-      const newItem: CartItem = { id: `${garment.id}-${fabric.id}-${Date.now()}`, garment, fabric, quantity: 1 };
+      const newItem: CartItem = {
+        id: `${garment.id}-${fabric.id}-${Date.now()}`,
+        garment,
+        fabric,
+        quantity: 1,
+      };
       return [...prevCart, newItem];
     });
-  }
+  };
 
   const removeFromCart = (itemId: string) => {
-    setCart(prevCart => prevCart.filter(item => item.id !== itemId));
-  }
+    setCart((prevCart) => prevCart.filter((item) => item.id !== itemId));
+  };
 
   const updateQuantity = (itemId: string, quantity: number) => {
     if (quantity <= 0) {
       removeFromCart(itemId);
     } else {
-      setCart(prevCart => prevCart.map(item => 
-        item.id === itemId ? { ...item, quantity } : item
-      ));
+      setCart((prevCart) =>
+        prevCart.map((item) => (item.id === itemId ? { ...item, quantity } : item))
+      );
     }
-  }
-
+  };
 
   return (
-    <UserContext.Provider value={{ user, credits, profiles, cart, login, logout, addProfile, addCredits, addToCart, removeFromCart, updateQuantity }}>
+    <UserContext.Provider
+      value={{
+        user,
+        credits,
+        profiles,
+        cart,
+        loading,
+        addProfile,
+        addCredits,
+        addToCart,
+        removeFromCart,
+        updateQuantity,
+      }}
+    >
       {children}
     </UserContext.Provider>
   );

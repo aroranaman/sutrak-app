@@ -1,15 +1,27 @@
-
 'use client';
 
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { Gem, LogIn, LogOut, ScanLine, Shirt, ShoppingCart, User } from 'lucide-react';
+import { Gem, LogIn, LogOut } from 'lucide-react';
 import { useUser } from '@/contexts/UserContext';
 import CartSheet from './CartSheet';
 import { HornbillIcon } from '../icons/HornbillIcon';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/firebase';
 
 export default function Header() {
-  const { user, credits, login, logout } = useUser();
+  const { user: appUser, credits } = useUser();
+  const { user: firebaseUser, signOut } = useAuth();
+  const router = useRouter();
+
+  const handleSignIn = () => {
+    router.push('/login');
+  };
+
+  const handleSignOut = async () => {
+    await signOut();
+    router.push('/');
+  };
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -37,7 +49,7 @@ export default function Header() {
           </nav>
         </div>
         <div className="flex flex-1 items-center justify-end space-x-4">
-          {user ? (
+          {firebaseUser ? (
             <>
               <div className="flex items-center gap-2 rounded-full border px-3 py-1 text-sm">
                 <Gem className="h-4 w-4 text-primary" />
@@ -45,13 +57,13 @@ export default function Header() {
                 <span className="text-foreground/60">Credits</span>
               </div>
               <CartSheet />
-              <Button variant="ghost" size="icon" onClick={logout}>
+              <Button variant="ghost" size="icon" onClick={handleSignOut}>
                 <LogOut className="h-5 w-5" />
                 <span className="sr-only">Log Out</span>
               </Button>
             </>
           ) : (
-            <Button onClick={login}>
+            <Button onClick={handleSignIn}>
               <LogIn className="mr-2 h-4 w-4" />
               Sign In
             </Button>

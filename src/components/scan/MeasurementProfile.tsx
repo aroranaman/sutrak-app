@@ -8,6 +8,8 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { CheckCircle, Save, Scan } from 'lucide-react';
 import ScanRetrySuggestion from './ScanRetrySuggestion';
+import { useAuth } from '@/firebase';
+import { useRouter } from 'next/navigation';
 
 interface MeasurementProfileProps {
   onNewScan: () => void;
@@ -15,20 +17,21 @@ interface MeasurementProfileProps {
 }
 
 export default function MeasurementProfile({ onNewScan, measurements }: MeasurementProfileProps) {
-  const { user, credits, addProfile, login } = useUser();
+  const { credits, addProfile } = useUser();
+  const { user: firebaseUser } = useAuth();
+  const router = useRouter();
   const [profileName, setProfileName] = useState('My Profile');
   const [isSaved, setIsSaved] = useState(false);
   const { toast } = useToast();
   
-  // Simulate a low-quality scan for demo purposes
   const [showRetrySuggestion, setShowRetrySuggestion] = useState(() => Math.random() < 0.3);
 
   const handleSaveProfile = () => {
-    if (!user) {
-      login();
+    if (!firebaseUser) {
+      router.push('/login?redirect=/scan');
       toast({
-        title: "Logged In",
-        description: "You've been signed in. Now you can save your profile.",
+        title: "Please Sign In",
+        description: "You need to be signed in to save your profile.",
       });
       return;
     }
@@ -44,7 +47,7 @@ export default function MeasurementProfile({ onNewScan, measurements }: Measurem
     
     const measurementsToSave = {
       bust: parseFloat(measurements.upperTorsoCircumferenceCm.toFixed(1)),
-      waist: 74, // This is a mock value, as waist is not calculated
+      waist: 74,
       hip: parseFloat(measurements.hipCircumferenceCm.toFixed(1)),
       inseam: parseFloat(measurements.inseamCm.toFixed(1)),
       shoulderWidth: parseFloat(measurements.shoulderWidthCm.toFixed(1))
@@ -132,7 +135,7 @@ export default function MeasurementProfile({ onNewScan, measurements }: Measurem
         </Button>
         <Button onClick={handleSaveProfile} disabled={isSaved || !measurements} className="bg-accent text-accent-foreground hover:bg-accent/90">
           <Save className="mr-2 size-4" />
-          {isSaved ? 'Profile Saved' : `Save Profile (${user ? '100 Credits' : 'Sign in to Save'})`}
+          {isSaved ? 'Profile Saved' : `Save Profile (${firebaseUser ? '100 Credits' : 'Sign in to Save'})`}
         </Button>
       </CardFooter>
     </Card>

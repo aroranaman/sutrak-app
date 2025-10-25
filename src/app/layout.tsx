@@ -5,6 +5,7 @@ import { cn } from '@/lib/utils';
 import { Toaster } from '@/components/ui/toaster';
 import Header from '@/components/layout/Header';
 import { UserProvider } from '@/contexts/UserContext';
+import { FirebaseProviderWrapper } from '@/firebase/client-provider';
 
 const alegreya = Alegreya({
   subsets: ['latin'],
@@ -31,11 +32,14 @@ export default function RootLayout({
           alegreya.variable
         )}
       >
-        <UserProvider>
-          <Header />
-          <main>{children}</main>
-          <Toaster />
-        </UserProvider>
+        <FirebaseProviderWrapper>
+          <UserProvider>
+            <Header />
+            <main>{children}</main>
+            <Toaster />
+          </UserProvider>
+        </FirebaseProviderWrapper>
+        <div id="recaptcha-container"></div>
       </body>
     </html>
   );
