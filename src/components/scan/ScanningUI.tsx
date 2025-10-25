@@ -1,8 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Pose, POSE_LANDMARKS } from '@mediapipe/pose';
-import { POSE_CONNECTIONS } from '@mediapipe/pose';
+import { Pose } from '@mediapipe/pose';
 import * as drawingUtils from '@mediapipe/drawing_utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,7 +9,6 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Loader2, Camera, UserCheck, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-
 
 interface ScanningUIProps {
     onComplete: (results: any) => void;
@@ -35,7 +33,7 @@ export default function ScanningUI({ onComplete }: ScanningUIProps) {
     const sideImageRef = useRef<HTMLImageElement>(new Image());
     const frontResultsRef = useRef<any>(null);
     const sideResultsRef = useRef<any>(null);
-    let processingState: 'idle' | 'processingFront' | 'processingSide' = 'idle';
+    const processingState = useRef<'idle' | 'processingFront' | 'processingSide'>('idle');
 
     // --- Initialize MediaPipe Pose ---
     useEffect(() => {
@@ -55,7 +53,7 @@ export default function ScanningUI({ onComplete }: ScanningUIProps) {
     }, []);
 
     const onPoseResults = (results: any) => {
-        if (processingState === 'processingFront') {
+        if (processingState.current === 'processingFront') {
             frontResultsRef.current = results;
             drawResults(results, frontImageRef.current);
 
@@ -66,10 +64,10 @@ export default function ScanningUI({ onComplete }: ScanningUIProps) {
             }
 
             setProcessingMessage("Processing side view...");
-            processingState = 'processingSide';
+            processingState.current = 'processingSide';
             poseRef.current?.send({ image: sideImageRef.current });
 
-        } else if (processingState === 'processingSide') {
+        } else if (processingState.current === 'processingSide') {
             sideResultsRef.current = results;
             drawResults(results, sideImageRef.current);
             if (!results.poseLandmarks) {
@@ -79,7 +77,7 @@ export default function ScanningUI({ onComplete }: ScanningUIProps) {
             }
 
             calculateMeasurements(frontResultsRef.current, sideResultsRef.current);
-            processingState = 'idle';
+            processingState.current = 'idle';
         }
     };
 
@@ -87,6 +85,9 @@ export default function ScanningUI({ onComplete }: ScanningUIProps) {
         if (!canvasRef.current) return;
         const canvasCtx = canvasRef.current.getContext('2d');
         if (!canvasCtx) return;
+
+        const POSE_CONNECTIONS = (window as any).POSE_CONNECTIONS;
+        if (!POSE_CONNECTIONS) return;
 
         canvasRef.current.width = image.width;
         canvasRef.current.height = image.height;
@@ -199,11 +200,13 @@ export default function ScanningUI({ onComplete }: ScanningUIProps) {
     // --- Processing & Calculation ---
     const processImages = () => {
         setProcessingMessage('Analyzing scan data...');
-        processingState = 'processingFront';
+        processingState.current = 'processingFront';
         poseRef.current?.send({ image: frontImageRef.current });
     };
 
     const getCalibration = (landmarks: any[], canvasHeight: number, userHeightCm: number) => {
+        const POSE_LANDMARKS = (window as any).POSE_LANDMARKS;
+        if (!POSE_LANDMARKS) return 0;
         const nose = landmarks[POSE_LANDMARKS.NOSE];
         const leftAnkle = landmarks[POSE_LANDMARKS.LEFT_ANKLE];
         const rightAnkle = landmarks[POSE_LANDMARKS.RIGHT_ANKLE];
@@ -219,6 +222,12 @@ export default function ScanningUI({ onComplete }: ScanningUIProps) {
     }
     
     const calculateMeasurements = (front: any, side: any) => {
+        const POSE_LANDMARKS = (window as any).POSE_LANDMARKS;
+        if (!POSE_LANDMARKS) {
+            toast({ variant: 'destructive', title: 'Initialization Error', description: 'Could not load pose data. Please refresh.' });
+            resetScan();
+            return;
+        }
         const frontLms = front.poseLandmarks;
         const sideLms = side.poseLandmarks;
         const frontCanvasWidth = frontImageRef.current.width;
@@ -296,7 +305,7 @@ export default function ScanningUI({ onComplete }: ScanningUIProps) {
             <CardContent className="p-0 md:grid md:grid-cols-2">
                 <div className="relative aspect-[9/16] md:aspect-auto bg-gray-900 flex items-center justify-center">
                     <video ref={videoRef} className="w-full h-full object-cover transform scale-x-[-1]" autoPlay playsInline muted />
-                    <canvas ref={canvasRef} className="absolute inset-0 w-full h-full object-cover hidden" />
+                    <canvas ref={canvasRef} className="absolute inset-0 w-full h-full object-cover" />
 
                     {(scanStage === 'countdown' || scanStage === 'capturing' || scanStage === 'starting') && (
                         <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-black/60 text-white text-center p-8">
@@ -366,5 +375,3 @@ export default function ScanningUI({ onComplete }: ScanningUIProps) {
         </Card>
     );
 }
-
-    
