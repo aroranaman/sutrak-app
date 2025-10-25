@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Gem, LogIn, LogOut, ScanLine, Shirt, ShoppingCart, User } from 'lucide-react';
 import { useUser } from '@/contexts/UserContext';
 import CartSheet from './CartSheet';
+import { HornbillIcon } from '../icons/HornbillIcon';
 
 export default function Header() {
   const { user, credits, login, logout } = useUser();
@@ -15,7 +16,7 @@ export default function Header() {
       <div className="container flex h-16 items-center">
         <div className="mr-4 flex">
           <Link href="/" className="mr-6 flex items-center space-x-2">
-            <Gem className="h-6 w-6 text-primary" />
+            <HornbillIcon className="h-6 w-6 text-primary" />
             <span className="font-bold sm:inline-block font-headline text-lg">
               Sutrak
             </span>
