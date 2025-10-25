@@ -52,7 +52,7 @@ export default function Home() {
               The End of "Will It Fit?"
             </h1>
             <p className="mx-auto max-w-[700px] text-foreground/80 md:text-xl">
-              Sutraka brings custom-tailored fashion to your fingertips. Experience perfect fit with our revolutionary AI-powered body scanning and virtual try-on technology.
+              Sutrak brings custom-tailored fashion to your fingertips. Experience perfect fit with our revolutionary AI-powered body scanning and virtual try-on technology.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 mt-6">
               <Button asChild size="lg" className="bg-accent text-accent-foreground hover:bg-accent/90">
@@ -139,7 +139,7 @@ export default function Home() {
         </div>
       </section>
       <footer className="flex flex-col gap-2 sm:flex-row py-6 w-full shrink-0 items-center px-4 md:px-6 border-t">
-        <p className="text-xs text-foreground/60">&copy; 2024 FitVerse. All rights reserved.</p>
+        <p className="text-xs text-foreground/60">&copy; 2024 Sutrak. All rights reserved.</p>
         <nav className="sm:ml-auto flex gap-4 sm:gap-6">
           <Link href="#" className="text-xs hover:underline underline-offset-4 text-foreground/80" prefetch={false}>
             Terms of Service

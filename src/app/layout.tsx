@@ -13,7 +13,7 @@ const alegreya = Alegreya({
 });
 
 export const metadata: Metadata = {
-  title: 'FitVerse - AI-Powered Perfect Fit',
+  title: 'Sutrak - AI-Powered Perfect Fit',
   description:
     'Experience the future of fashion with AI-powered body scanning and virtual try-on. Perfect fit, guaranteed.',
 };
