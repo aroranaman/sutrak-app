@@ -41,11 +41,11 @@ export default function LoginPage() {
     // Initialize RecaptchaVerifier
     if (!recaptchaVerifierRef.current) {
         recaptchaVerifierRef.current = new RecaptchaVerifier(
+          auth,
           'recaptcha-container',
           {
             size: 'invisible',
-          },
-          auth
+          }
         );
     }
     
