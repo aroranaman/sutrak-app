@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useUser } from '@/contexts/UserContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -24,7 +24,12 @@ export default function MeasurementProfile({ onNewScan, measurements }: Measurem
   const [isSaved, setIsSaved] = useState(false);
   const { toast } = useToast();
   
-  const [showRetrySuggestion, setShowRetrySuggestion] = useState(() => Math.random() < 0.3);
+  const [showRetrySuggestion, setShowRetrySuggestion] = useState(false);
+
+  useEffect(() => {
+    // Run this only on the client-side to avoid hydration mismatch
+    setShowRetrySuggestion(Math.random() < 0.3);
+  }, []);
 
   const handleSaveProfile = () => {
     if (!firebaseUser) {
