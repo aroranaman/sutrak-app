@@ -6,14 +6,16 @@ export const HornbillIcon = (props: React.SVGProps<SVGSVGElement>) => (
     viewBox="0 0 24 24"
     fill="none"
     stroke="currentColor"
-    strokeWidth="2"
+    strokeWidth="1.5"
     strokeLinecap="round"
     strokeLinejoin="round"
     {...props}
   >
-    <path d="M12,6.5C12,6.5,15,2,22,6" />
-    <path d="M13,9.5A3.5,3.5,0,0,1,6,13H3a1,1,0,0,1-1-1V9a1,1,0,0,1,1-1H8" />
-    <path d="M7,13c0,2.5,2,4,5,4s5-1.5,5-4" />
-    <circle cx="10" cy="11.5" r="1" />
+    <path d="M20.34 18.34C19.23 17.23 18 16 18 14H19C19 12 18 10 16.5 9.5" />
+    <path d="M18 14C18 13.04 17.47 12.22 16.7 11.69" />
+    <path d="M14 14C14 12 12 10 10 10C8 10 6 12 6 14" />
+    <path d="M12 12C12 11.23 11.91 10.49 11.75 9.79" />
+    <path d="M3.5 20C3.5 17 6 14 10 14" />
+    <path d="M11.75 9.79C10.29 5.89 12.83 3.43 14.53 2.22C16.89 3.01 18 4.5 18 7C18 9 17 10.5 15.5 11" />
   </svg>
 );
