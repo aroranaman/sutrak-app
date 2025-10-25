@@ -10,9 +10,13 @@ type ScanStep = 'tutorial' | 'scanning' | 'processing' | 'results';
 
 export default function ScanPage() {
   const [step, setStep] = useState<ScanStep>('tutorial');
+  const [measurementResults, setMeasurementResults] = useState(null);
 
   const onTutorialComplete = () => setStep('scanning');
-  const onScanComplete = () => setStep('processing');
+  const onScanComplete = (results: any) => {
+    setMeasurementResults(results);
+    setStep('processing');
+  };
   const onProcessingComplete = () => setStep('results');
 
   const pageVariants = {
@@ -75,7 +79,10 @@ export default function ScanPage() {
             variants={pageVariants}
             transition={pageTransition}
           >
-            <MeasurementProfile onNewScan={() => setStep('tutorial')} />
+            <MeasurementProfile 
+              onNewScan={() => setStep('tutorial')} 
+              measurements={measurementResults}
+            />
           </motion.div>
         )}
       </AnimatePresence>
