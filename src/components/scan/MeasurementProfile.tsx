@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from 'react';
@@ -15,7 +14,9 @@ import {
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from "@/components/ui/tooltip"
+} from "@/components/ui/tooltip";
+import { saveMeasurementClient } from '@/actions/saveMeasurementClient';
+import AvatarPreview from './AvatarPreview';
 
 interface MeasurementProfileProps {
   onNewScan: () => void;
@@ -32,7 +33,6 @@ const measurementInfo: Record<string, string> = {
   inseam: "The length of your inner leg, from your crotch to your ankle.",
 };
 
-
 export default function MeasurementProfile({ onNewScan, measurements }: MeasurementProfileProps) {
   const { addProfile } = useUser();
   const { user: firebaseUser } = useAuth();
@@ -41,7 +41,7 @@ export default function MeasurementProfile({ onNewScan, measurements }: Measurem
   const [isSaved, setIsSaved] = useState(false);
   const { toast } = useToast();
 
-  const handleSaveProfile = () => {
+  const handleSaveProfile = async () => {
     if (!firebaseUser) {
       router.push('/login?redirect=/scan');
       toast({
@@ -60,44 +60,49 @@ export default function MeasurementProfile({ onNewScan, measurements }: Measurem
       return;
     }
     
-    // The measurements are now accurate from the "backend"
-    const measurementsToSave = {
-      bust: parseFloat(measurements.upperTorsoCircumferenceCm.toFixed(1)),
-      waist: parseFloat((measurements.hipCircumferenceCm * 0.85).toFixed(1)), // Still an estimate
-      hip: parseFloat(measurements.hipCircumferenceCm.toFixed(1)),
-      inseam: parseFloat(measurements.inseamCm.toFixed(1)),
-      shoulderWidth: parseFloat(measurements.shoulderWidthCm.toFixed(1))
-    };
+    if (!measurements) {
+       toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'No measurements to save.',
+      });
+      return;
+    }
 
-    const success = addProfile({
-      name: profileName,
-      measurements: measurementsToSave,
-    });
+    try {
+      await saveMeasurementClient(firebaseUser, profileName, measurements);
+      
+      // Also update the local context state
+      addProfile({
+          name: profileName,
+          measurements: measurements
+      }, true); // pass skipDeduction = true
 
-    if (success) {
       setIsSaved(true);
       toast({
         title: 'Profile Saved!',
         description: `"${profileName}" has been added. You can view it in your profile.`,
       });
-    } else {
-       // The useUser hook's `addProfile` will show the "insufficient credits" toast.
-       // No need to add another one here.
+    } catch (e: any) {
+      if (e.message === 'NOT_ENOUGH_CREDITS') {
+        toast({
+          variant: 'destructive',
+          title: 'Insufficient Credits',
+          description: 'You need at least 100 credits to save a profile. Earn more by making purchases or top up your wallet.',
+        });
+      } else {
+        toast({
+          variant: 'destructive',
+          title: 'Error Saving Profile',
+          description: 'An unexpected error occurred. Please try again.',
+        });
+        console.error("Error saving profile:", e);
+      }
     }
   };
   
-  const displayMeasurements = {
-    bust: measurements?.upperTorsoCircumferenceCm,
-    hip: measurements?.hipCircumferenceCm,
-    shoulderWidth: measurements?.shoulderWidthCm,
-    sleeveLength: measurements?.sleeveLengthCm,
-    torsoLength: measurements?.torsoLengthCm,
-    inseam: measurements?.inseamCm,
-  };
-
-
   return (
-    <Card className="max-w-2xl mx-auto shadow-xl">
+    <Card className="max-w-4xl mx-auto shadow-xl">
       <CardHeader>
         <div className="flex justify-between items-start">
           <div>
@@ -110,32 +115,36 @@ export default function MeasurementProfile({ onNewScan, measurements }: Measurem
         </div>
       </CardHeader>
       <CardContent className="space-y-6">
-        <TooltipProvider>
-        {measurements ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-lg">
-          {Object.entries(displayMeasurements).map(([key, value]) => (
-            <div key={key} className="flex justify-between items-center p-3 bg-secondary rounded-lg">
-                <div className="flex items-center gap-2">
-                    <span className="capitalize font-medium text-secondary-foreground">
-                        {key.replace(/([A-Z])/g, ' $1').trim()}
-                    </span>
-                    <Tooltip>
-                        <TooltipTrigger>
-                            <HelpCircle className="size-4 text-muted-foreground" />
-                        </TooltipTrigger>
-                        <TooltipContent>
-                            <p>{measurementInfo[key] || 'No information available.'}</p>
-                        </TooltipContent>
-                    </Tooltip>
+        <div className="grid md:grid-cols-2 gap-8 items-center">
+            <AvatarPreview measurements={measurements} />
+            <TooltipProvider>
+            {measurements ? (
+            <div className="grid grid-cols-1 gap-4 text-lg">
+              {Object.entries(measurements).map(([key, value]: [string, any]) => (
+                <div key={key} className="flex justify-between items-center p-3 bg-secondary rounded-lg">
+                    <div className="flex items-center gap-2">
+                        <span className="capitalize font-medium text-secondary-foreground">
+                            {key.replace(/([A-Z])/g, ' $1').trim()}
+                        </span>
+                        <Tooltip>
+                            <TooltipTrigger>
+                                <HelpCircle className="size-4 text-muted-foreground" />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                <p>{measurementInfo[key] || 'No information available.'}</p>
+                            </TooltipContent>
+                        </Tooltip>
+                    </div>
+                  <span className="font-bold text-primary">{value.toFixed(1)} cm</span>
                 </div>
-              <span className="font-bold text-primary">{value.toFixed(1)} cm</span>
+              ))}
             </div>
-          ))}
+            ) : (
+              <p>No measurement data available. Please complete a scan.</p>
+            )}
+            </TooltipProvider>
         </div>
-        ) : (
-          <p>No measurement data available. Please complete a scan.</p>
-        )}
-        </TooltipProvider>
+        
         <div>
           <label htmlFor="profileName" className="text-sm font-medium text-foreground/80">Profile Name</label>
           <Input
@@ -161,5 +170,3 @@ export default function MeasurementProfile({ onNewScan, measurements }: Measurem
     </Card>
   );
 }
-
-    

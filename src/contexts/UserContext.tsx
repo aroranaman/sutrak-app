@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, {
@@ -11,8 +10,9 @@ import React, {
 } from 'react';
 import type { Garment, Fabric } from '@/lib/data';
 import { useAuth, useFirestore, useDoc } from '@/firebase';
-import { doc, setDoc, serverTimestamp, getDoc } from 'firebase/firestore';
+import { doc, setDoc, serverTimestamp, getDoc, collection, updateDoc, addDoc } from 'firebase/firestore';
 import { User as FirebaseUser } from 'firebase/auth';
+import { grantJoinBonusIfFirstLogin } from '@/lib/grantJoinBonus';
 
 interface UserData {
   credits: number;
@@ -49,11 +49,12 @@ interface UserContextType {
   profiles: MeasurementProfile[];
   cart: CartItem[];
   loading: boolean;
-  addProfile: (profile: MeasurementProfile) => boolean;
+  addProfile: (profile: MeasurementProfile, skipDeduction?: boolean) => boolean;
   addCredits: (amount: number) => void;
   addToCart: (garment: Garment, fabric: Fabric) => void;
   removeFromCart: (itemId: string) => void;
   updateQuantity: (itemId: string, quantity: number) => void;
+  clearCart: () => void;
 }
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
@@ -87,37 +88,15 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
     },
     [userDocRef]
   );
-
-  const createNewUserDoc = useCallback(
-    async (newUser: FirebaseUser) => {
-      if (!firestore) return;
-      const newUserDocRef = doc(firestore, 'users', newUser.uid);
-      const docSnap = await getDoc(newUserDocRef);
-
-      if (!docSnap.exists()) {
-        const isAdmin = newUser.phoneNumber === '+918979292639';
-        const initialCredits = isAdmin ? 10000 : 500;
-
-        const initialData: UserData & {
-          uid: string;
-          createdAt: any;
-          phoneNumber: string | null;
-          email: string | null;
-          displayName: string | null;
-        } = {
-          uid: newUser.uid,
-          email: newUser.email,
-          displayName: newUser.displayName,
-          phoneNumber: newUser.phoneNumber,
-          createdAt: serverTimestamp(),
-          credits: initialCredits,
-          profiles: [],
-        };
-        await setDoc(newUserDocRef, initialData);
-      }
-    },
-    [firestore]
-  );
+  
+  useEffect(() => {
+    const checkAndGrantBonus = async (user: FirebaseUser) => {
+      await grantJoinBonusIfFirstLogin(user);
+    }
+    if (firebaseUser) {
+      checkAndGrantBonus(firebaseUser);
+    }
+  }, [firebaseUser]);
 
   useEffect(() => {
     const localCart = localStorage.getItem('cart');
@@ -152,8 +131,7 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
         setLoading(false);
 
       } else if (userStatus === 'error' || (userStatus === 'success' && !userData)) {
-        // This case handles a new user where the doc doesn't exist yet.
-        createNewUserDoc(firebaseUser);
+        // Doc might not exist yet, grantJoinBonus will handle creation
         setLoading(false);
       }
     } else {
@@ -161,32 +139,34 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
       setUser(null);
       setCredits(0);
       setProfiles([]);
+      setCart([]);
       setLoading(false);
     }
-  }, [firebaseUser, authLoading, userStatus, userData, createNewUserDoc]);
-  
-  // Dedicated effect to handle admin credits, preventing loops.
-  useEffect(() => {
-    if (userData && firebaseUser) {
-      const isAdmin = firebaseUser.phoneNumber === '+918979292639';
-      const currentCredits = userData.credits ?? 0;
-      
-      if (isAdmin && currentCredits < 10000) {
-        updateUserDocument({ credits: 10000 });
-      }
-    }
-  }, [userData, firebaseUser, updateUserDocument]);
+  }, [firebaseUser, authLoading, userStatus, userData]);
 
 
   useEffect(() => {
     if (cart.length > 0) {
       localStorage.setItem('cart', JSON.stringify(cart));
     } else {
-      localStorage.removeItem('cart');
+        // This handles clearing the cart from local storage when it's emptied.
+        const localCart = localStorage.getItem('cart');
+        if (localCart) {
+            localStorage.removeItem('cart');
+        }
     }
   }, [cart]);
+  
+  const clearCart = () => {
+    setCart([]);
+  }
 
-  const addProfile = (profile: MeasurementProfile) => {
+  const addProfile = (profile: MeasurementProfile, skipDeduction = false) => {
+    if (skipDeduction) {
+      setProfiles(prev => [...prev, profile]);
+      return true;
+    }
+
     if (credits >= 100) {
       const newCredits = credits - 100;
       const newProfiles = [...profiles, profile];
@@ -256,6 +236,7 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
         addToCart,
         removeFromCart,
         updateQuantity,
+        clearCart,
       }}
     >
       {children}

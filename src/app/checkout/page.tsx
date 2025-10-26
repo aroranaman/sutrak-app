@@ -9,9 +9,12 @@ import { useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from '@/hooks/use-toast';
+import { useAuth } from '@/firebase';
+import { addEarnForOrder } from '@/actions/addEarnForOrder';
 
 export default function CheckoutPage() {
-  const { cart, user, credits, addCredits } = useUser();
+  const { cart, user, credits, addCredits, clearCart } = useUser();
+  const { user: firebaseUser } = useAuth();
   const [creditsToRedeem, setCreditsToRedeem] = useState(0);
 
   const subtotal = cart.reduce(
@@ -36,17 +39,38 @@ export default function CheckoutPage() {
     setCreditsToRedeem(redeemAmount);
   };
   
-  const handlePlaceOrder = () => {
+  const handlePlaceOrder = async () => {
+    if (!firebaseUser) {
+        toast({
+            variant: 'destructive',
+            title: "Not Logged In",
+            description: "Please sign in to place an order."
+        });
+        return;
+    }
+
     // In a real app, this would process payment.
     // For this demo, we just deduct credits.
     if (creditsToRedeem > 0) {
         addCredits(-creditsToRedeem);
     }
+
+    // Add earned credits if applicable
+    if (subtotal >= 3500) {
+        await addEarnForOrder(firebaseUser, subtotal);
+        toast({
+            title: "Bonus Credits Added!",
+            description: `You've earned bonus credits for your order!`
+        });
+    }
+
     toast({
         title: "Order Placed!",
         description: "Thank you for your purchase (this is a demo)."
     });
-    // Here you would typically clear the cart and redirect.
+    
+    // Clear cart after successful order
+    clearCart();
   }
 
   return (

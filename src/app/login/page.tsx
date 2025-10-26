@@ -14,6 +14,7 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, LogIn } from 'lucide-react';
 import { sendOtp, resetRecaptcha } from './send-otp';
+import { grantJoinBonusIfFirstLogin } from '@/lib/grantJoinBonus';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -57,7 +58,9 @@ export default function LoginPage() {
     if (!confirmationResult) return;
     setLoading(true);
     try {
-      await confirmationResult.confirm(otp);
+      const result = await confirmationResult.confirm(otp);
+      await grantJoinBonusIfFirstLogin(result.user);
+
       toast({
         title: 'Success!',
         description: 'You have been signed in successfully.',
