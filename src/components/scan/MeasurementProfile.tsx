@@ -1,12 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, Suspense } from 'react';
 import { useUser } from '@/contexts/UserContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { CheckCircle, Save, Scan, HelpCircle } from 'lucide-react';
+import { CheckCircle, Save, Scan, HelpCircle, Loader2 } from 'lucide-react';
 import { useAuth } from '@/firebase';
 import { useRouter } from 'next/navigation';
 import {
@@ -116,7 +116,13 @@ export default function MeasurementProfile({ onNewScan, measurements }: Measurem
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="grid md:grid-cols-2 gap-8 items-center">
-            <AvatarPreview measurements={measurements} />
+            <Suspense fallback={
+              <div className="h-96 w-full rounded-lg border bg-secondary flex items-center justify-center">
+                  <Loader2 className="size-8 animate-spin text-muted-foreground" />
+              </div>
+            }>
+              <AvatarPreview measurements={measurements} />
+            </Suspense>
             <TooltipProvider>
             {measurements ? (
             <div className="grid grid-cols-1 gap-4 text-lg">
