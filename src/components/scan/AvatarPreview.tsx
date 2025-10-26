@@ -6,16 +6,16 @@ import { Suspense } from "react";
 
 type M = { bust: number; hip: number; shoulderWidth: number; sleeveLength: number; torsoLength: number; inseam: number; };
 
-function Body({ m }: { m: M }) {
+function Body({ measurements }: { measurements: M }) {
   // crude proportional scaling from circumferences/lengths
   // Convert cm to scene units (e.g., divide by 100 to get meters)
   const scale = 1 / 100;
-  const bustRadius = (m.bust * scale) / (2 * Math.PI);
-  const hipRadius = (m.hip * scale) / (2 * Math.PI);
-  const shoulderWidthValue = m.shoulderWidth * scale;
-  const torsoLen = m.torsoLength * scale;
-  const sleeveLen = m.sleeveLength * scale;
-  const inseamLen = m.inseam * scale;
+  const bustRadius = (measurements.bust * scale) / (2 * Math.PI);
+  const hipRadius = (measurements.hip * scale) / (2 * Math.PI);
+  const shoulderWidthValue = measurements.shoulderWidth * scale;
+  const torsoLen = measurements.torsoLength * scale;
+  const sleeveLen = measurements.sleeveLength * scale;
+  const inseamLen = measurements.inseam * scale;
   const legRadius = hipRadius * 0.4;
   const armRadius = bustRadius * 0.2;
 
@@ -79,7 +79,7 @@ export default function AvatarPreview({ measurements }: { measurements: M | null
         <ambientLight intensity={0.8}/>
         <directionalLight intensity={1.5} position={[3, 5, 4]}/>
         <Suspense fallback={null}>
-            <Body m={measurements}/>
+            <Body measurements={measurements}/>
         </Suspense>
         <OrbitControls />
       </Canvas>
