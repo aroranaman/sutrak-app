@@ -2,12 +2,13 @@
 
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { Gem, LogIn, LogOut } from 'lucide-react';
+import { Gem, LogIn, LogOut, User } from 'lucide-react';
 import { useUser } from '@/contexts/UserContext';
 import CartSheet from './CartSheet';
 import { HornbillIcon } from '../icons/HornbillIcon';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/firebase';
+import ProfileSheet from './ProfileSheet';
 
 export default function Header() {
   const { user: appUser, credits } = useUser();
@@ -48,14 +49,15 @@ export default function Header() {
             </Link>
           </nav>
         </div>
-        <div className="flex flex-1 items-center justify-end space-x-4">
+        <div className="flex flex-1 items-center justify-end space-x-2 md:space-x-4">
           {firebaseUser ? (
             <>
-              <div className="flex items-center gap-2 rounded-full border px-3 py-1 text-sm">
+              <div className="hidden sm:flex items-center gap-2 rounded-full border px-3 py-1 text-sm">
                 <Gem className="h-4 w-4 text-primary" />
                 <span className="font-semibold">{credits}</span>
                 <span className="text-foreground/60">Credits</span>
               </div>
+              <ProfileSheet />
               <CartSheet />
               <Button variant="ghost" size="icon" onClick={handleSignOut}>
                 <LogOut className="h-5 w-5" />
