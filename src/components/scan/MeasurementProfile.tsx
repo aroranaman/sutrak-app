@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -22,8 +23,8 @@ interface MeasurementProfileProps {
 }
 
 const measurementInfo: Record<string, string> = {
-  bustCircumference: "The measurement around the fullest part of your chest.",
-  hipCircumference: "The measurement around the widest part of your hips.",
+  bust: "The measurement around the fullest part of your chest.",
+  hip: "The measurement around the widest part of your hips.",
   shoulderWidth: "The distance from the end of one shoulder to the other.",
   sleeveLength: "The length from your shoulder to your wrist.",
   torsoLength: "The distance from your shoulder to your hip, indicating your upper body length.",
@@ -33,7 +34,7 @@ const measurementInfo: Record<string, string> = {
 
 
 export default function MeasurementProfile({ onNewScan, measurements }: MeasurementProfileProps) {
-  const { addProfile } = useUser();
+  const { addProfile, credits } = useUser();
   const { user: firebaseUser } = useAuth();
   const router = useRouter();
   const [profileName, setProfileName] = useState('My Profile');
@@ -79,16 +80,20 @@ export default function MeasurementProfile({ onNewScan, measurements }: Measurem
       setIsSaved(true);
       toast({
         title: 'Profile Saved!',
-        description: `"${profileName}" has been added. 100 credits were used.`,
+        description: `"${profileName}" has been added. You can view it in your profile.`,
       });
     } else {
-      // The useUser hook will show the "insufficient credits" toast
+       toast({
+        variant: 'destructive',
+        title: 'Save Failed',
+        description: `You need at least 100 credits to save. Your balance is ${credits}.`,
+      });
     }
   };
   
   const displayMeasurements = {
-    bustCircumference: measurements?.upperTorsoCircumferenceCm,
-    hipCircumference: measurements?.hipCircumferenceCm,
+    bust: measurements?.upperTorsoCircumferenceCm,
+    hip: measurements?.hipCircumferenceCm,
     shoulderWidth: measurements?.shoulderWidthCm,
     sleeveLength: measurements?.sleeveLengthCm,
     torsoLength: measurements?.torsoLengthCm,
