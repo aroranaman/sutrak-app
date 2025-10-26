@@ -72,55 +72,70 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
       ? doc(firestore, 'users', firebaseUser.uid)
       : null;
   const { data: userData, status: userStatus } = useDoc<UserData>(userDocRef);
-  
-  const updateUserDocument = useCallback(async (data: Partial<UserData>) => {
-    if (!userDocRef) return false;
-    try {
-      await setDoc(userDocRef, data, { merge: true });
-      return true;
-    } catch (error) {
-      console.error('Error updating user document:', error);
-      return false;
-    }
-  }, [userDocRef]);
 
-  const createNewUserDoc = useCallback(async (newUser: FirebaseUser) => {
-    if (!firestore) return;
-    const newUserDocRef = doc(firestore, 'users', newUser.uid);
-    const docSnap = await getDoc(newUserDocRef);
+  const updateUserDocument = useCallback(
+    async (data: Partial<UserData>) => {
+      if (!firestore || !firebaseUser) return false;
+      const docRef = doc(firestore, 'users', firebaseUser.uid);
+      try {
+        await setDoc(docRef, data, { merge: true });
+        return true;
+      } catch (error) {
+        console.error('Error updating user document:', error);
+        return false;
+      }
+    },
+    [firestore, firebaseUser]
+  );
 
-    if (!docSnap.exists()) {
-      const isAdmin = newUser.phoneNumber === '+918979292639';
-      const initialCredits = isAdmin ? 10000 : 500;
+  const createNewUserDoc = useCallback(
+    async (newUser: FirebaseUser) => {
+      if (!firestore) return;
+      const newUserDocRef = doc(firestore, 'users', newUser.uid);
+      const docSnap = await getDoc(newUserDocRef);
 
-      const initialData: UserData & { uid: string, createdAt: any, phoneNumber: string | null, email: string | null, displayName: string | null } = {
-        uid: newUser.uid,
-        email: newUser.email,
-        displayName: newUser.displayName,
-        phoneNumber: newUser.phoneNumber,
-        createdAt: serverTimestamp(),
-        credits: initialCredits,
-        profiles: [],
-      };
-      await setDoc(newUserDocRef, initialData);
-      setCredits(initialCredits);
-      setProfiles([]);
-    } else {
+      if (!docSnap.exists()) {
+        const isAdmin = newUser.phoneNumber === '+918979292639';
+        const initialCredits = isAdmin ? 10000 : 500;
+
+        const initialData: UserData & {
+          uid: string;
+          createdAt: any;
+          phoneNumber: string | null;
+          email: string | null;
+          displayName: string | null;
+        } = {
+          uid: newUser.uid,
+          email: newUser.email,
+          displayName: newUser.displayName,
+          phoneNumber: newUser.phoneNumber,
+          createdAt: serverTimestamp(),
+          credits: initialCredits,
+          profiles: [],
+        };
+        await setDoc(newUserDocRef, initialData);
+        setCredits(initialCredits);
+        setProfiles([]);
+      } else {
         const data = docSnap.data() as UserData;
         const currentCredits = data.credits || 0;
-        
+
         // Special check for the admin account to top-up credits if needed
-        if (newUser.phoneNumber === '+918979292639' && currentCredits < 10000) {
-            await setDoc(newUserDocRef, { credits: 10000 }, { merge: true });
-            setCredits(10000);
+        if (
+          newUser.phoneNumber === '+918979292639' &&
+          currentCredits < 10000
+        ) {
+          await setDoc(newUserDocRef, { credits: 10000 }, { merge: true });
+          setCredits(10000);
         } else {
-            setCredits(currentCredits);
+          setCredits(currentCredits);
         }
         setProfiles(data.profiles || []);
-    }
-    setLoading(false);
-  }, [firestore]);
-
+      }
+      setLoading(false);
+    },
+    [firestore]
+  );
 
   useEffect(() => {
     const localCart = localStorage.getItem('cart');
@@ -128,7 +143,7 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
       try {
         setCart(JSON.parse(localCart));
       } catch (e) {
-        console.error("Failed to parse cart from localStorage", e);
+        console.error('Failed to parse cart from localStorage', e);
         localStorage.removeItem('cart');
       }
     }
@@ -136,42 +151,48 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     if (authLoading) {
-        setLoading(true);
-        return;
+      setLoading(true);
+      return;
     }
-    
-    if (firebaseUser) {
-        setUser({
-          id: firebaseUser.uid,
-          name: firebaseUser.displayName || 'User',
-          phone: firebaseUser.phoneNumber,
-        });
 
-        if (userStatus === 'loading') {
-            setLoading(true);
-        } else if (userStatus === 'success' && userData) {
-            const currentCredits = userData.credits ?? 0;
-             // Ensure admin account always has at least 10000 credits
-            if(firebaseUser.phoneNumber === '+918979292639' && currentCredits < 10000) {
-                updateUserDocument({ credits: 10000 });
-                setCredits(10000);
-            } else {
-                setCredits(currentCredits);
-            }
-            setProfiles(userData.profiles ?? []);
-            setLoading(false);
-        } else if (userStatus === 'error' || (userStatus === 'success' && !userData)) {
-            // This case handles a new user where the doc doesn't exist yet.
-            createNewUserDoc(firebaseUser);
+    if (firebaseUser) {
+      setUser({
+        id: firebaseUser.uid,
+        name: firebaseUser.displayName || 'User',
+        phone: firebaseUser.phoneNumber,
+      });
+
+      if (userStatus === 'loading') {
+        setLoading(true);
+      } else if (userStatus === 'success' && userData) {
+        const currentCredits = userData.credits ?? 0;
+        // Ensure admin account always has at least 10000 credits
+        if (
+          firebaseUser.phoneNumber === '+918979292639' &&
+          currentCredits < 10000
+        ) {
+          if (firestore) {
+            const adminDocRef = doc(firestore, 'users', firebaseUser.uid);
+            setDoc(adminDocRef, { credits: 10000 }, { merge: true });
+          }
+          setCredits(10000);
+        } else {
+          setCredits(currentCredits);
         }
-    } else {
-        // No user is signed in
-        setUser(null);
-        setCredits(0);
-        setProfiles([]);
+        setProfiles(userData.profiles ?? []);
         setLoading(false);
+      } else if (userStatus === 'error' || (userStatus === 'success' && !userData)) {
+        // This case handles a new user where the doc doesn't exist yet.
+        createNewUserDoc(firebaseUser);
+      }
+    } else {
+      // No user is signed in
+      setUser(null);
+      setCredits(0);
+      setProfiles([]);
+      setLoading(false);
     }
-  }, [firebaseUser, authLoading, firestore, userData, userStatus, createNewUserDoc, updateUserDocument]);
+  }, [firebaseUser, authLoading, firestore, userData, userStatus, createNewUserDoc]);
 
   useEffect(() => {
     if (cart.length > 0) {
@@ -180,7 +201,6 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
       localStorage.removeItem('cart');
     }
   }, [cart]);
-
 
   const addProfile = (profile: MeasurementProfile) => {
     if (credits >= 100) {
@@ -203,13 +223,13 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const addToCart = (garment: Garment, fabric: Fabric) => {
-    setCart((prevCart) => {
+    setCart(prevCart => {
       const existingItem = prevCart.find(
-        (item) =>
+        item =>
           item.garment.id === garment.id && item.fabric.id === fabric.id
       );
       if (existingItem) {
-        return prevCart.map((item) =>
+        return prevCart.map(item =>
           item.id === existingItem.id
             ? { ...item, quantity: item.quantity + 1 }
             : item
@@ -226,15 +246,15 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const removeFromCart = (itemId: string) => {
-    setCart((prevCart) => prevCart.filter((item) => item.id !== itemId));
+    setCart(prevCart => prevCart.filter(item => item.id !== itemId));
   };
 
   const updateQuantity = (itemId: string, quantity: number) => {
     if (quantity <= 0) {
       removeFromCart(itemId);
     } else {
-      setCart((prevCart) =>
-        prevCart.map((item) => (item.id === itemId ? { ...item, quantity } : item))
+      setCart(prevCart =>
+        prevCart.map(item => (item.id === itemId ? { ...item, quantity } : item))
       );
     }
   };
