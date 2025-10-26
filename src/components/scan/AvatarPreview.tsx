@@ -1,8 +1,9 @@
-// src/components/scan/AvatarPreview.tsx
 "use client";
+
+import * as React from "react";
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
-import { Suspense } from "react";
+import { Loader2 } from "lucide-react";
 
 type M = { bust: number; hip: number; shoulderWidth: number; sleeveLength: number; torsoLength: number; inseam: number; };
 
@@ -78,9 +79,9 @@ export default function AvatarPreview({ measurements }: { measurements: M | null
       <Canvas camera={{ position: [0, 0, 3], fov: 50 }}>
         <ambientLight intensity={0.8}/>
         <directionalLight intensity={1.5} position={[3, 5, 4]}/>
-        <Suspense fallback={null}>
+        <React.Suspense fallback={null}>
             <Body measurements={measurements}/>
-        </Suspense>
+        </React.Suspense>
         <OrbitControls />
       </Canvas>
     </div>
