@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, {
@@ -152,16 +153,16 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
         
         if (isAdmin && currentCredits < 10000) {
            updateUserDocument({ credits: 10000 });
-           setCredits(10000);
-        } else {
-          setCredits(currentCredits);
         }
+        
+        setCredits(userData.credits ?? 0);
         setProfiles(userData.profiles ?? []);
         setLoading(false);
 
       } else if (userStatus === 'error' || (userStatus === 'success' && !userData)) {
         // This case handles a new user where the doc doesn't exist yet.
         createNewUserDoc(firebaseUser);
+        setLoading(false);
       }
     } else {
       // No user is signed in
