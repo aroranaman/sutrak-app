@@ -76,19 +76,18 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
 
   const updateUserDocument = useCallback(
     async (data: Partial<UserData>) => {
-      if (!firestore || !firebaseUser) return false;
-      const docRef = doc(firestore, 'users', firebaseUser.uid);
+      if (!userDocRef) return false;
       try {
-        await setDoc(docRef, data, { merge: true });
+        await setDoc(userDocRef, data, { merge: true });
         return true;
       } catch (error) {
         console.error('Error updating user document:', error);
         return false;
       }
     },
-    [firestore, firebaseUser]
+    [userDocRef]
   );
-  
+
   const createNewUserDoc = useCallback(
     async (newUser: FirebaseUser) => {
       if (!firestore) return;
@@ -168,14 +167,11 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
   
   // Dedicated effect to handle admin credits
   useEffect(() => {
-    // This effect runs whenever user data is loaded or changes.
-    // It guarantees the admin account credit balance is corrected if needed.
     if (userData && firebaseUser) {
       const isAdmin = firebaseUser.phoneNumber === '+918979292639';
       const currentCredits = userData.credits ?? 0;
       
       if (isAdmin && currentCredits < 10000) {
-        // Direct call to update the document.
         updateUserDocument({ credits: 10000 });
       }
     }
