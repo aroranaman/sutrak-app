@@ -32,7 +32,7 @@ export function useAuth() {
     } catch (error) {
       console.error('Error signing out:', error);
     }
-  }, [router]);
+  }, []);
 
   return { user, loading, signOut, auth };
 }
