@@ -22,7 +22,7 @@ import { Loader2, LogIn } from 'lucide-react';
 export default function LoginPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { auth } = useAuth(); // Use the hook to get the auth instance
+  const { auth } = useAuth();
   const { toast } = useToast();
 
   const [phoneNumber, setPhoneNumber] = useState('');
@@ -32,14 +32,24 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [otpSent, setOtpSent] = useState(false);
 
+  // We will create the verifier on demand now.
   const recaptchaVerifierRef = useRef<RecaptchaVerifier | null>(null);
 
-  useEffect(() => {
-    // Ensure auth is loaded before trying to create a verifier.
-    if (!auth) return;
+  const handleSendOtp = async () => {
+    if (!auth) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description:
+          'Authentication service is not ready. Please try again.',
+      });
+      return;
+    }
 
-    // Initialize RecaptchaVerifier
-    if (!recaptchaVerifierRef.current) {
+    setLoading(true);
+    try {
+      // Create the verifier on-demand
+      if (!recaptchaVerifierRef.current) {
         recaptchaVerifierRef.current = new RecaptchaVerifier(
           auth,
           'recaptcha-container',
@@ -47,32 +57,16 @@ export default function LoginPage() {
             size: 'invisible',
           }
         );
-    }
-    
-    // Clean up recaptcha on unmount
-    return () => {
-      recaptchaVerifierRef.current?.clear();
-    };
-  }, [auth]);
-
-  const handleSendOtp = async () => {
-    if (!auth || !recaptchaVerifierRef.current) {
-        toast({
-            variant: 'destructive',
-            title: 'Error',
-            description: 'Authentication service is not ready. Please wait a moment and try again.',
-        });
-        return;
-    }
-
-    setLoading(true);
-    try {
+      }
+      
+      const verifier = recaptchaVerifierRef.current;
+      
       // The Indian country code is +91
       const fullPhoneNumber = `+91${phoneNumber}`;
       const confirmation = await signInWithPhoneNumber(
         auth,
         fullPhoneNumber,
-        recaptchaVerifierRef.current
+        verifier
       );
       setConfirmationResult(confirmation);
       setOtpSent(true);
