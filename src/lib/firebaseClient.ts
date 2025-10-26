@@ -6,6 +6,7 @@ import {
   persistentLocalCache,
   persistentMultipleTabManager,
   enableNetwork,
+  experimentalForceLongPolling,
   type Firestore 
 } from 'firebase/firestore';
 import { firebaseConfig } from '@/firebase/config';
@@ -25,11 +26,8 @@ const app: FirebaseApp = initializeFirebaseApp();
 // Initialize services and export them as singletons.
 const auth: Auth = getAuth(app);
 const firestore: Firestore = initializeFirestore(app, {
-  // Prefer REST (no websockets). Use ONE of these switches; start with preferRest.
-  preferRest: true, // <— primary fix on Workstations
-  // If your env still marks you offline, comment preferRest and
-  // uncomment the line below to force long polling:
-  // experimentalForceLongPolling: true,
+  // Use long polling as it is more reliable in some cloud environments
+  experimentalForceLongPolling: true,
   localCache: persistentLocalCache({
     tabManager: persistentMultipleTabManager(),
   }),
