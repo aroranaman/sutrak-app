@@ -12,27 +12,38 @@ import { firestore } from '@/lib/firebaseClient';
 import type { User } from 'firebase/auth';
 
 /**
- * Try server-first (bypasses “offline” client state), then fall back to cache.
- * Never throw—login should not be blocked by credits bookkeeping.
+ * Give ₹500 on first login. Works even if the user doc already exists but has 0/undefined credits.
+ * Uses server reads to bypass any "client offline" state.
+ * Never throws; login UX must not be blocked by credits writes.
  */
 export async function grantJoinBonusIfFirstLogin(user: User): Promise<number | void> {
   const userRef = doc(firestore, 'users', user.uid);
 
   try {
-    // Prefer server—does not rely on watch/listen transport
-    const snap = await getDocFromServer(userRef).catch(() => null);
+    // Read from server (preferred path)
+    const serverSnap = await getDocFromServer(userRef).catch(() => null);
 
-    if (!snap || !snap.exists()) {
-      const current = await getDoc(userRef).catch(() => null);
-      const hasCredits = !!current?.exists() && typeof current.data()?.credits === 'number';
+    // If doc is missing on server...
+    if (!serverSnap || !serverSnap.exists()) {
+      // Check cache as a fallback (in case server is flaky)
+      const cacheSnap = await getDoc(userRef).catch(() => null);
+      const cachedCredits =
+        cacheSnap?.exists() && typeof cacheSnap.data()?.credits === 'number'
+          ? cacheSnap.data()!.credits
+          : undefined;
 
-      if (!hasCredits) {
-        await setDoc(userRef, {
-          uid: user.uid,
-          phone: user.phoneNumber ?? null,
-          credits: 500,
-          createdAt: serverTimestamp(),
-        }, { merge: true });
+      if (!cachedCredits || cachedCredits <= 0) {
+        // Create doc with ₹500 credits
+        await setDoc(
+          userRef,
+          {
+            uid: user.uid,
+            phone: user.phoneNumber ?? null,
+            credits: 500,
+            createdAt: serverTimestamp(),
+          },
+          { merge: true },
+        );
 
         await addDoc(collection(userRef, 'credits_ledger'), {
           type: 'join_bonus',
@@ -40,15 +51,16 @@ export async function grantJoinBonusIfFirstLogin(user: User): Promise<number | v
           source: 'signup',
           createdAt: serverTimestamp(),
         });
-
         return 500;
-      } else {
-        return current?.data()?.credits ?? 0;
       }
+      return cachedCredits;
     }
 
-    const bal = typeof snap.data().credits === 'number' ? snap.data().credits : 0;
-    if (bal === 0) {
+    // Doc exists on server: ensure credits >= 500 once
+    const serverCredits =
+      typeof serverSnap.data().credits === 'number' ? serverSnap.data().credits : 0;
+
+    if (serverCredits <= 0) {
       await setDoc(userRef, { credits: 500 }, { merge: true });
       await addDoc(collection(userRef, 'credits_ledger'), {
         type: 'join_bonus',
@@ -58,9 +70,9 @@ export async function grantJoinBonusIfFirstLogin(user: User): Promise<number | v
       });
       return 500;
     }
-    return bal;
+
+    return serverCredits;
   } catch (e) {
-    // Swallow “offline” and move on; login should succeed regardless.
-    console.warn('[grantJoinBonusIfFirstLogin] non-fatal error:', e);
+    console.warn('[grantJoinBonusIfFirstLogin] non-fatal:', e);
   }
 }
