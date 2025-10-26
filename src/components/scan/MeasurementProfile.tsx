@@ -127,8 +127,10 @@ export default function MeasurementProfile({ onNewScan, measurements }: Measurem
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="grid md:grid-cols-2 gap-8 items-center">
+          <Suspense fallback={<Skeleton className="h-96 w-full rounded-lg" />}>
             <AvatarPreview measurements={measurements} />
-            <TooltipProvider>
+          </Suspense>
+          <TooltipProvider>
             {measurements ? (
             <div className="grid grid-cols-1 gap-4 text-lg">
               {Object.entries(measurements).map(([key, value]: [string, any]) => (

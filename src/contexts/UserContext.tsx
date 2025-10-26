@@ -12,6 +12,7 @@ import type { Garment, Fabric } from '@/lib/data';
 import { useAuth, useFirestore, useDoc } from '@/firebase';
 import { doc, setDoc } from 'firebase/firestore';
 import { grantJoinBonusIfFirstLogin } from '@/lib/grantJoinBonus';
+import { ensureJoinBonus } from '@/lib/fixCredits';
 
 interface UserData {
   credits: number;
@@ -99,8 +100,14 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
     // Grant bonus only when a new firebase user appears
     if (firebaseUser) {
       grantJoinBonusIfFirstLogin(firebaseUser);
+      // One-time fix for existing users
+      ensureJoinBonus(firebaseUser).then(newBalance => {
+         if (newBalance > credits) {
+           setCredits(newBalance);
+         }
+      });
     }
-  }, [firebaseUser]);
+  }, [firebaseUser, credits]);
 
   useEffect(() => {
     const localCart = localStorage.getItem('cart');
