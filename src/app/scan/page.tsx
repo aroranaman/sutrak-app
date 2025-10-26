@@ -1,3 +1,4 @@
+
 'use client';
 import { useState } from 'react';
 import ScanTutorial from '@/components/scan/ScanTutorial';
@@ -19,10 +20,21 @@ export default function ScanPage() {
   };
 
   const onTutorialComplete = () => setStep('scanning');
+  
   const onScanComplete = (results: any) => {
-    setMeasurementResults(results);
+    // Map the incoming detailed keys to the simplified keys expected by AvatarPreview
+    const mappedResults = {
+      bust: results.upperTorsoCircumferenceCm,
+      hip: results.hipCircumferenceCm,
+      shoulderWidth: results.shoulderWidthCm,
+      sleeveLength: results.sleeveLengthCm,
+      torsoLength: results.torsoLengthCm,
+      inseam: results.inseamCm,
+    };
+    setMeasurementResults(mappedResults);
     setStep('processing');
   };
+
   const onProcessingComplete = () => setStep('results');
 
   const pageVariants = {
