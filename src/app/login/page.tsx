@@ -35,7 +35,7 @@ export default function LoginPage() {
   const recaptchaVerifierRef = useRef<RecaptchaVerifier | null>(null);
 
   useEffect(() => {
-    if (auth && !recaptchaVerifierRef.current) {
+    if (!authLoading && auth && !recaptchaVerifierRef.current) {
       recaptchaVerifierRef.current = new RecaptchaVerifier(
         auth,
         'recaptcha-container',
@@ -61,7 +61,7 @@ export default function LoginPage() {
         });
       });
     }
-  }, [auth, toast]);
+  }, [auth, authLoading, toast]);
 
   const handleSendOtp = async () => {
     if (!auth) {
@@ -101,7 +101,12 @@ export default function LoginPage() {
         description: error.message || 'Failed to send OTP. Please try again.',
       });
        if (recaptchaVerifierRef.current) {
-        recaptchaVerifierRef.current.clear();
+        // Reset the reCAPTCHA verifier widget
+        recaptchaVerifierRef.current.render().then(widgetId => {
+          if (typeof (window as any).grecaptcha !== 'undefined') {
+            (window as any).grecaptcha.reset(widgetId);
+          }
+        });
       }
 
     } finally {
