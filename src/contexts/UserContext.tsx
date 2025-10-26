@@ -6,6 +6,7 @@ import React, {
   useState,
   ReactNode,
   useEffect,
+  useCallback,
 } from 'react';
 import type { Garment, Fabric } from '@/lib/data';
 import { useAuth, useFirestore, useDoc } from '@/firebase';
@@ -56,12 +57,6 @@ interface UserContextType {
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
 
-const initialUser: User = {
-  id: '',
-  name: 'Guest',
-  phone: '',
-};
-
 export const UserProvider = ({ children }: { children: ReactNode }) => {
   const { user: firebaseUser, loading: authLoading } = useAuth();
   const firestore = useFirestore();
@@ -77,58 +72,77 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
       ? doc(firestore, 'users', firebaseUser.uid)
       : null;
   const { data: userData, status: userStatus } = useDoc<UserData>(userDocRef);
+  
+  const createNewUserDoc = useCallback(async (newUser: FirebaseUser) => {
+    if (!firestore) return;
+    const newUserDocRef = doc(firestore, 'users', newUser.uid);
+    const docSnap = await getDoc(newUserDocRef);
+
+    if (!docSnap.exists()) {
+      const initialData = {
+        uid: newUser.uid,
+        email: newUser.email,
+        displayName: newUser.displayName,
+        phoneNumber: newUser.phoneNumber,
+        createdAt: serverTimestamp(),
+        credits: 500,
+        profiles: [],
+      };
+      await setDoc(newUserDocRef, initialData);
+      setCredits(500);
+      setProfiles([]);
+    } else {
+        const data = docSnap.data() as UserData;
+        setCredits(data.credits || 0);
+        setProfiles(data.profiles || []);
+    }
+    setLoading(false);
+  }, [firestore]);
+
 
   useEffect(() => {
     const localCart = localStorage.getItem('cart');
     if (localCart) {
-      setCart(JSON.parse(localCart));
+      try {
+        setCart(JSON.parse(localCart));
+      } catch (e) {
+        console.error("Failed to parse cart from localStorage", e);
+        localStorage.removeItem('cart');
+      }
     }
   }, []);
 
   useEffect(() => {
-    if (!authLoading) {
-      if (firebaseUser) {
+    if (authLoading) {
+        setLoading(true);
+        return;
+    }
+    
+    if (firebaseUser) {
         setUser({
           id: firebaseUser.uid,
           name: firebaseUser.displayName || 'User',
           phone: firebaseUser.phoneNumber,
         });
 
-        if (userStatus === 'success' && userData) {
-          setCredits(userData.credits || 0);
-          setProfiles(userData.profiles || []);
-          setLoading(false);
+        if (userStatus === 'loading') {
+            setLoading(true);
+        } else if (userStatus === 'success' && userData) {
+            setCredits(userData.credits ?? 0);
+            setProfiles(userData.profiles ?? []);
+            setLoading(false);
         } else if (userStatus === 'error' || (userStatus === 'success' && !userData)) {
-          // New user, create document
-          const createNewUserDoc = async (newUser: FirebaseUser) => {
-            if (!firestore) return;
-            const newUserDocRef = doc(firestore, 'users', newUser.uid);
-            const docSnap = await getDoc(newUserDocRef);
-
-            if (!docSnap.exists()) {
-              await setDoc(newUserDocRef, {
-                uid: newUser.uid,
-                email: newUser.email,
-                displayName: newUser.displayName,
-                phoneNumber: newUser.phoneNumber,
-                createdAt: serverTimestamp(),
-                credits: 500,
-                profiles: [],
-              });
-              setCredits(500);
-            }
-             setLoading(false);
-          };
-          createNewUserDoc(firebaseUser);
+            // This case handles a new user where the doc doesn't exist yet.
+            createNewUserDoc(firebaseUser);
         }
-      } else {
+    } else {
+        // No user is signed in
         setUser(null);
         setCredits(0);
         setProfiles([]);
         setLoading(false);
-      }
     }
-  }, [firebaseUser, authLoading, firestore, userData, userStatus]);
+  }, [firebaseUser, authLoading, firestore, userData, userStatus, createNewUserDoc]);
 
   useEffect(() => {
     if (cart.length > 0) {
