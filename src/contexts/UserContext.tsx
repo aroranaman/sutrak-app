@@ -85,11 +85,11 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
         displayName: newUser.displayName,
         phoneNumber: newUser.phoneNumber,
         createdAt: serverTimestamp(),
-        credits: 500,
+        credits: 10000,
         profiles: [],
       };
       await setDoc(newUserDocRef, initialData);
-      setCredits(500);
+      setCredits(10000);
       setProfiles([]);
     } else {
         const data = docSnap.data() as UserData;
