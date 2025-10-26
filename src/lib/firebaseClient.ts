@@ -25,13 +25,17 @@ const app: FirebaseApp = initializeFirebaseApp();
 // Initialize services and export them as singletons.
 const auth: Auth = getAuth(app);
 const firestore: Firestore = initializeFirestore(app, {
-  preferRest: true, 
+  // Prefer REST (no websockets). Use ONE of these switches; start with preferRest.
+  preferRest: true, // <— primary fix on Workstations
+  // If your env still marks you offline, comment preferRest and
+  // uncomment the line below to force long polling:
+  // experimentalForceLongPolling: true,
   localCache: persistentLocalCache({
     tabManager: persistentMultipleTabManager(),
   }),
 });
 
-// Explicitly re-enable the network to be certain
+// Ensure network is ON (in case disableNetwork got called somewhere)
 enableNetwork(firestore).catch(() => {});
 
 
