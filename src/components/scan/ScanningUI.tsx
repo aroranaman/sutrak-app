@@ -29,15 +29,57 @@ const correctMeasurements = {
 
 export default function ScanningUI({ onComplete }: ScanningUIProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const [hasCameraPermission, setHasCameraPermission] = useState(true);
+  const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
   const [scanStage, setScanStage] = useState<ScanStage>('idle');
   const [countdown, setCountdown] = useState(5);
   const [scanMessage, setScanMessage] = useState("Let's get your measurements.");
   const [userHeight, setUserHeight] = useState('170');
   const { toast } = useToast();
 
+  useEffect(() => {
+    const getCameraPermission = async () => {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ 
+          video: { facingMode: 'user', width: { ideal: 720 }, height: { ideal: 1280 } } 
+        });
+        setHasCameraPermission(true);
+
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+        }
+      } catch (error) {
+        console.error('Error accessing camera:', error);
+        setHasCameraPermission(false);
+        toast({
+          variant: 'destructive',
+          title: 'Camera Access Denied',
+          description: 'Please enable camera permissions in your browser settings to use this app.',
+        });
+      }
+    };
+
+    getCameraPermission();
+
+    return () => {
+      // Cleanup: Stop camera tracks when component unmounts
+      if (videoRef.current && videoRef.current.srcObject) {
+        (videoRef.current.srcObject as MediaStream).getTracks().forEach(track => track.stop());
+      }
+    };
+  }, [toast]);
+
+
   // --- Camera & Scan Flow ---
   const startScan = async () => {
+    if (!hasCameraPermission) {
+       toast({
+        variant: 'destructive',
+        title: 'Camera Access Required',
+        description: 'Cannot start scan without camera permission.',
+      });
+      return;
+    }
+
     const heightCm = parseInt(userHeight);
     if (!userHeight || isNaN(heightCm) || heightCm < 140 || heightCm > 210) {
       toast({
@@ -49,25 +91,7 @@ export default function ScanningUI({ onComplete }: ScanningUIProps) {
     }
 
     setScanStage('starting');
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'user', width: { ideal: 720 }, height: { ideal: 1280 } },
-      });
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-      }
-      setHasCameraPermission(true);
-      runScanSequence();
-    } catch (error) {
-      console.error('Error accessing camera:', error);
-      setHasCameraPermission(false);
-      setScanStage('idle');
-      toast({
-        variant: 'destructive',
-        title: 'Camera Access Denied',
-        description: 'Please enable camera permissions in your browser settings.',
-      });
-    }
+    runScanSequence();
   };
 
   const runScanSequence = async () => {
@@ -80,7 +104,6 @@ export default function ScanningUI({ onComplete }: ScanningUIProps) {
     setScanMessage('Scanning...');
     await new Promise(r => setTimeout(r, 5000)); // Simulate 360 capture
 
-    stopCamera();
     setScanStage('processing');
 
     // Simulate backend processing time as per the architecture diagram (Recon, Draping, etc.)
@@ -124,13 +147,33 @@ export default function ScanningUI({ onComplete }: ScanningUIProps) {
   };
 
   const resetScan = () => {
-    stopCamera();
     setScanStage('idle');
     setScanMessage("Let's get your measurements.");
+    // Re-enable camera if it was stopped
+    if (!videoRef.current?.srcObject) {
+      const getCameraPermission = async () => {
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: { ideal: 720 }, height: { ideal: 1280 } } });
+          if (videoRef.current) videoRef.current.srcObject = stream;
+          setHasCameraPermission(true);
+        } catch (error) {
+          setHasCameraPermission(false);
+        }
+      };
+      getCameraPermission();
+    }
   };
   
   if (scanStage === 'processing') {
-      return <ScanProcessing onComplete={() => onComplete(correctMeasurements)} />;
+      const processingMeasurements = {
+        upperTorsoCircumferenceCm: correctMeasurements.bust,
+        hipCircumferenceCm: correctMeasurements.hip,
+        shoulderWidthCm: correctMeasurements.shoulderWidth,
+        sleeveLengthCm: correctMeasurements.sleeveLength,
+        torsoLengthCm: correctMeasurements.torsoLength,
+        inseamCm: correctMeasurements.inseam,
+      };
+      return <ScanProcessing onComplete={() => onComplete(processingMeasurements)} />;
   }
 
   return (
@@ -138,6 +181,13 @@ export default function ScanningUI({ onComplete }: ScanningUIProps) {
       <CardContent className="p-0 flex flex-col md:grid md:grid-cols-2">
         <div className="relative aspect-[9/16] md:aspect-auto bg-gray-900 flex items-center justify-center">
           <video ref={videoRef} className="w-full h-full object-cover transform scale-x-[-1]" autoPlay playsInline muted />
+          
+          {hasCameraPermission === null && (
+             <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-black/60 text-white text-center p-8">
+                <Loader2 className="size-24 animate-spin" />
+                <h2 className="text-3xl font-bold mt-4">Requesting Camera...</h2>
+             </div>
+          )}
 
           {(scanStage === 'countdown' || scanStage === 'capturing' || scanStage === 'starting') && (
             <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-black/60 text-white text-center p-8">
@@ -148,15 +198,15 @@ export default function ScanningUI({ onComplete }: ScanningUIProps) {
             </div>
           )}
 
-          {scanStage === 'idle' && (
+          {scanStage === 'idle' && hasCameraPermission && (
             <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-black/60 text-white text-center p-8">
               <UserCheck size={96} className="text-primary" />
               <h2 className="text-3xl font-bold">Ready for your scan?</h2>
               <p className="mt-2 text-foreground/80">Follow the on-screen instructions for best results.</p>
             </div>
           )}
-
-          {!hasCameraPermission && (
+          
+          {hasCameraPermission === false && (
             <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-black/60 text-white text-center p-8">
               <Alert variant="destructive" className="max-w-sm">
                 <AlertTitle>Camera Access Required</AlertTitle>
@@ -187,7 +237,7 @@ export default function ScanningUI({ onComplete }: ScanningUIProps) {
           </div>
 
           {scanStage === 'idle' ? (
-            <Button size="lg" onClick={startScan} className="w-full bg-accent text-accent-foreground hover:bg-accent/90">
+            <Button size="lg" onClick={startScan} disabled={!hasCameraPermission} className="w-full bg-accent text-accent-foreground hover:bg-accent/90">
               <Camera className="mr-2" />
               Start Scan
             </Button>
@@ -202,3 +252,5 @@ export default function ScanningUI({ onComplete }: ScanningUIProps) {
     </Card>
   );
 }
+
+  
