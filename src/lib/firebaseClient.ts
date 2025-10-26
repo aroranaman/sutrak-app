@@ -1,17 +1,21 @@
+import { initializeApp, getApps, getApp, type FirebaseApp } from 'firebase/app';
+import { getAuth, type Auth } from 'firebase/auth';
+import { getFirestore, type Firestore } from 'firebase/firestore';
+import { firebaseConfig } from '@/firebase/config';
 
-import { initializeApp, getApps, getApp, type FirebaseApp } from "firebase/app";
-import { getAuth, type Auth } from "firebase/auth";
-import { getFirestore, type Firestore } from "firebase/firestore";
-import { firebaseConfig } from "@/firebase/config";
-
-// Initialize Firebase
-let app: FirebaseApp;
-if (!getApps().length) {
-  app = initializeApp(firebaseConfig);
-} else {
-  app = getApp();
+// This function ensures that we initialize the app only once.
+function initializeFirebaseApp(): FirebaseApp {
+  if (getApps().length === 0) {
+    return initializeApp(firebaseConfig);
+  } else {
+    return getApp();
+  }
 }
 
+// Initialize the app and export it as a singleton.
+const app: FirebaseApp = initializeFirebaseApp();
+
+// Initialize services and export them as singletons.
 const auth: Auth = getAuth(app);
 const firestore: Firestore = getFirestore(app);
 

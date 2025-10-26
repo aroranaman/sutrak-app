@@ -1,7 +1,6 @@
-
-"use client";
-import { RecaptchaVerifier, signInWithPhoneNumber, type ConfirmationResult } from "firebase/auth";
-import { auth } from "@/lib/firebaseClient";
+'use client';
+import { RecaptchaVerifier, signInWithPhoneNumber, type ConfirmationResult } from 'firebase/auth';
+import { auth } from '@/lib/firebaseClient'; // Use the central auth instance
 
 let recaptcha: RecaptchaVerifier | null = null;
 

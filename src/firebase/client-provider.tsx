@@ -1,11 +1,10 @@
-
 'use client';
 
 import type { FirebaseApp } from 'firebase/app';
 import type { Auth } from 'firebase/auth';
 import type { Firestore } from 'firebase/firestore';
 import { createContext, useContext, type ReactNode } from 'react';
-import { app, auth, firestore } from '@/lib/firebaseClient';
+import { app, auth, firestore } from '@/lib/firebaseClient'; // Import the singletons
 
 interface FirebaseContextValue {
   app: FirebaseApp;
@@ -13,17 +12,19 @@ interface FirebaseContextValue {
   firestore: Firestore;
 }
 
-const FirebaseContext = createContext<FirebaseContextValue | null>(null);
+// Create context with the initialized singletons as the default value.
+const FirebaseContext = createContext<FirebaseContextValue>({
+  app,
+  auth,
+  firestore,
+});
 
 export function FirebaseProvider({
   children,
-  ...value
 }: {
   children: ReactNode;
-  app: FirebaseApp;
-  auth: Auth;
-  firestore: Firestore;
 }) {
+  const value = { app, auth, firestore };
   return (
     <FirebaseContext.Provider value={value}>
       {children}
@@ -33,9 +34,7 @@ export function FirebaseProvider({
 
 export function useFirebase() {
   const context = useContext(FirebaseContext);
-  if (!context) {
-    throw new Error('useFirebase must be used within a FirebaseProvider');
-  }
+  // No need to check for context, as it's provided at the root with a default value.
   return context;
 }
 
@@ -47,9 +46,10 @@ export function useFirestore() {
   return useFirebase().firestore;
 }
 
+// This wrapper is now correctly named and uses the simplified provider.
 export function FirebaseProviderWrapper({ children }: { children: ReactNode }) {
   return (
-    <FirebaseProvider app={app} auth={auth} firestore={firestore}>
+    <FirebaseProvider>
       {children}
     </FirebaseProvider>
   );

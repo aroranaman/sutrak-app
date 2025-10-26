@@ -1,4 +1,3 @@
-
 'use client';
 
 import {
@@ -34,5 +33,5 @@ export function useAuth() {
     }
   }, []);
 
-  return { user, loading, signOut, auth };
+  return { user, loading, signOut };
 }
