@@ -18,15 +18,7 @@ import {
 } from "@/components/ui/tooltip";
 import { saveMeasurementClient } from '@/actions/saveMeasurementClient';
 import { Skeleton } from '../ui/skeleton';
-
-const AvatarPreview = dynamic(() => import('./AvatarPreview'), {
-  ssr: false,
-  loading: () => (
-    <div className="h-96 w-full rounded-lg border bg-secondary flex items-center justify-center">
-      <Loader2 className="size-8 animate-spin text-muted-foreground" />
-    </div>
-  ),
-});
+import AvatarCanvasShell from './AvatarCanvasShell';
 
 
 interface MeasurementProfileProps {
@@ -128,7 +120,7 @@ export default function MeasurementProfile({ onNewScan, measurements }: Measurem
       <CardContent className="space-y-6">
         <div className="grid md:grid-cols-2 gap-8 items-center">
           <Suspense fallback={<Skeleton className="h-96 w-full rounded-lg" />}>
-            <AvatarPreview measurements={measurements} />
+            <AvatarCanvasShell measurements={measurements} />
           </Suspense>
           <TooltipProvider>
             {measurements ? (
