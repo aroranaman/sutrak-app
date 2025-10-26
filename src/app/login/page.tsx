@@ -37,42 +37,57 @@ export default function LoginPage() {
 
 
   useEffect(() => {
-    if (!authLoading && auth && !recaptchaVerifierRef.current && recaptchaContainerRef.current) {
+    if (auth && !recaptchaVerifierRef.current) {
+      if (recaptchaContainerRef.current) {
+        // This is a defensive initialization, it might be re-initialized in handleSendOtp
         recaptchaVerifierRef.current = new RecaptchaVerifier(
           auth,
           recaptchaContainerRef.current,
           {
             size: 'invisible',
+            'callback': (response: any) => {
+              // reCAPTCHA solved, allow signInWithPhoneNumber.
+            },
+            'expired-callback': () => {
+              // Response expired. Ask user to solve reCAPTCHA again.
+            }
           }
         );
         recaptchaVerifierRef.current.render().catch((error) => {
           toast({
             variant: "destructive",
             title: "reCAPTCHA Error",
-            description: "Could not render reCAPTCHA. Please refresh the page.",
-          })
+            description: "Could not render reCAPTCHA. Please try again.",
+          });
         });
+      }
     }
-
-    return () => {
-        recaptchaVerifierRef.current?.clear();
-    }
-  }, [auth, authLoading, toast]);
+  }, [auth, toast]);
 
   const handleSendOtp = async () => {
-    if (!auth || !recaptchaVerifierRef.current) {
+    if (!auth) {
       toast({
         variant: 'destructive',
         title: 'Error',
-        description:
-          'Authentication service is not ready. Please try again.',
+        description: 'Authentication service is not ready. Please try again.',
       });
       return;
     }
-
     setLoading(true);
     try {
-      const verifier = recaptchaVerifierRef.current;
+      // Ensure verifier is created if it hasn't been
+      if (!recaptchaVerifierRef.current && recaptchaContainerRef.current) {
+         recaptchaVerifierRef.current = new RecaptchaVerifier(
+          auth,
+          recaptchaContainerRef.current,
+          {
+            size: 'invisible',
+          }
+        );
+        await recaptchaVerifierRef.current.render();
+      }
+
+      const verifier = recaptchaVerifierRef.current!;
       
       // The Indian country code is +91
       const fullPhoneNumber = `+91${phoneNumber}`;
@@ -94,11 +109,9 @@ export default function LoginPage() {
         title: 'Error',
         description: error.message || 'Failed to send OTP. Please try again.',
       });
-       // Reset reCAPTCHA for retry
-      if (recaptchaVerifierRef.current) {
-        recaptchaVerifierRef.current.clear();
-        recaptchaVerifierRef.current.render();
-      }
+      // Reset reCAPTCHA for retry
+      recaptchaVerifierRef.current?.clear();
+
     } finally {
       setLoading(false);
     }
@@ -204,7 +217,7 @@ export default function LoginPage() {
               </div>
             )}
           </div>
-          <div ref={recaptchaContainerRef} />
+          <div ref={recaptchaContainerRef} id="recaptcha-container" />
         </CardContent>
       </Card>
     </div>
