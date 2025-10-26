@@ -73,17 +73,27 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
       : null;
   const { data: userData, status: userStatus } = useDoc<UserData>(userDocRef);
   
+  const updateUserDocument = useCallback(async (data: Partial<UserData>) => {
+    if (!userDocRef) return false;
+    try {
+      await setDoc(userDocRef, data, { merge: true });
+      return true;
+    } catch (error) {
+      console.error('Error updating user document:', error);
+      return false;
+    }
+  }, [userDocRef]);
+
   const createNewUserDoc = useCallback(async (newUser: FirebaseUser) => {
     if (!firestore) return;
     const newUserDocRef = doc(firestore, 'users', newUser.uid);
     const docSnap = await getDoc(newUserDocRef);
 
     if (!docSnap.exists()) {
-      // Check if the new user is the special test account
       const isAdmin = newUser.phoneNumber === '+918979292639';
       const initialCredits = isAdmin ? 10000 : 500;
 
-      const initialData = {
+      const initialData: UserData & { uid: string, createdAt: any, phoneNumber: string | null, email: string | null, displayName: string | null } = {
         uid: newUser.uid,
         email: newUser.email,
         displayName: newUser.displayName,
@@ -97,7 +107,15 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
       setProfiles([]);
     } else {
         const data = docSnap.data() as UserData;
-        setCredits(data.credits || 0);
+        const currentCredits = data.credits || 0;
+        
+        // Special check for the admin account to top-up credits if needed
+        if (newUser.phoneNumber === '+918979292639' && currentCredits < 10000) {
+            await setDoc(newUserDocRef, { credits: 10000 }, { merge: true });
+            setCredits(10000);
+        } else {
+            setCredits(currentCredits);
+        }
         setProfiles(data.profiles || []);
     }
     setLoading(false);
@@ -132,7 +150,14 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
         if (userStatus === 'loading') {
             setLoading(true);
         } else if (userStatus === 'success' && userData) {
-            setCredits(userData.credits ?? 0);
+            const currentCredits = userData.credits ?? 0;
+             // Ensure admin account always has at least 10000 credits
+            if(firebaseUser.phoneNumber === '+918979292639' && currentCredits < 10000) {
+                updateUserDocument({ credits: 10000 });
+                setCredits(10000);
+            } else {
+                setCredits(currentCredits);
+            }
             setProfiles(userData.profiles ?? []);
             setLoading(false);
         } else if (userStatus === 'error' || (userStatus === 'success' && !userData)) {
@@ -146,7 +171,7 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
         setProfiles([]);
         setLoading(false);
     }
-  }, [firebaseUser, authLoading, firestore, userData, userStatus, createNewUserDoc]);
+  }, [firebaseUser, authLoading, firestore, userData, userStatus, createNewUserDoc, updateUserDocument]);
 
   useEffect(() => {
     if (cart.length > 0) {
@@ -156,16 +181,6 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [cart]);
 
-  const updateUserDocument = async (data: Partial<UserData>) => {
-    if (!userDocRef) return false;
-    try {
-      await setDoc(userDocRef, data, { merge: true });
-      return true;
-    } catch (error) {
-      console.error('Error updating user document:', error);
-      return false;
-    }
-  };
 
   const addProfile = (profile: MeasurementProfile) => {
     if (credits >= 100) {
