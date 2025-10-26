@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState } from 'react';
@@ -18,7 +17,7 @@ import {
 } from "@/components/ui/tooltip";
 import { saveMeasurementClient } from '@/actions/saveMeasurementClient';
 import AvatarCanvasShell from './AvatarCanvasShell';
-import type { MeasurementProfile } from '@/contexts/UserContext'; // Use the one from context
+import type { MeasurementProfile } from '@/contexts/UserContext';
 
 interface MeasurementProfileProps {
   onNewScan: () => void;
@@ -35,7 +34,6 @@ const measurementInfo: Record<keyof MeasurementProfile['measurements'], string> 
 };
 
 function normalize(m: Partial<MeasurementProfile['measurements']>): MeasurementProfile['measurements'] {
-  // Defaults keep avatar safe even if some fields are missing
   return {
     bust: Number(m.bust ?? 95.5),
     hip: Number(m.hip ?? 94.7),
@@ -82,11 +80,9 @@ export default function MeasurementProfile({ onNewScan, measurements: measured }
           name: profileName,
           measurements: measurements
       };
-
-      // The client action now returns the new balance.
+      
       const result = await saveMeasurementClient(firebaseUser, newProfile);
       
-      // Update local context state after successful server update
       addProfile(newProfile, result.balance);
 
       setIsSaved(true);
@@ -95,7 +91,8 @@ export default function MeasurementProfile({ onNewScan, measurements: measured }
         description: `"${profileName}" has been added. You can view it in your profile.`,
       });
     } catch (e: any) {
-      if (e.message === 'NOT_ENOUGH_CREDITS') {
+      const msg = String(e?.message || e);
+       if (msg === 'NOT_ENOUGH_CREDITS') {
         toast({
           variant: 'destructive',
           title: 'Insufficient Credits',
@@ -104,16 +101,26 @@ export default function MeasurementProfile({ onNewScan, measurements: measured }
       } else {
         toast({
           variant: 'destructive',
-          title: 'Error Saving Profile',
-          description: 'An unexpected error occurred. Please try again.',
+          title: 'Save failed',
+          description: msg,
         });
-        console.error("Error saving profile:", e);
       }
+      console.error("Error saving profile:", e);
     } finally {
       setSaving(false);
     }
   };
   
+  // Adapt measurements for the R3F component which expects a different structure
+  const avatarMeasurements = {
+    bust: measurements.bust,
+    hip: measurements.hip,
+    shoulder: measurements.shoulderWidth,
+    sleeve: measurements.sleeveLength,
+    torso: measurements.torsoLength,
+    inseam: measurements.inseam,
+  };
+
   return (
     <Card className="max-w-4xl mx-auto shadow-xl">
       <CardHeader>
@@ -129,7 +136,7 @@ export default function MeasurementProfile({ onNewScan, measurements: measured }
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="grid md:grid-cols-2 gap-8 items-center">
-          <AvatarCanvasShell measurements={measurements} />
+          <AvatarCanvasShell m={avatarMeasurements} />
           <TooltipProvider>
             <div className="grid grid-cols-1 gap-4 text-lg">
               {(Object.keys(measurements) as Array<keyof typeof measurements>).map((key) => (
