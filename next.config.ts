@@ -38,21 +38,11 @@ const nextConfig: NextConfig = {
   webpack: (config) => {
     const topReact = require.resolve("react");
     const topReactDOM = require.resolve("react-dom");
-    const topReconciler = require.resolve("react-reconciler");
-    const topScheduler = require.resolve("scheduler"); // sometimes duplicated too
-
+    
     config.resolve.alias = {
       ...(config.resolve.alias || {}),
       react: topReact,
       "react-dom": topReactDOM,
-      "react-reconciler": topReconciler,
-      scheduler: topScheduler,
-
-      // Force nested imports to collapse to top-level too:
-      "@react-three/fiber/node_modules/react": topReact,
-      "@react-three/fiber/node_modules/react-dom": topReactDOM,
-      "@react-three/fiber/node_modules/react-reconciler": topReconciler,
-      "@react-three/fiber/node_modules/scheduler": topScheduler,
     };
 
     return config;
