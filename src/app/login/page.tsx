@@ -45,7 +45,6 @@ export default function LoginPage() {
             // reCAPTCHA solved, allow signInWithPhoneNumber.
           },
           'expired-callback': () => {
-            // Response expired. Ask user to solve reCAPTCHA again.
             toast({
               title: 'reCAPTCHA Expired',
               description: 'Please try sending the OTP again.',
@@ -101,8 +100,9 @@ export default function LoginPage() {
         title: 'Error',
         description: error.message || 'Failed to send OTP. Please try again.',
       });
-      // Reset reCAPTCHA for retry
-      recaptchaVerifierRef.current?.clear();
+       if (recaptchaVerifierRef.current) {
+        recaptchaVerifierRef.current.clear();
+      }
 
     } finally {
       setLoading(false);
