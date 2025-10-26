@@ -10,8 +10,7 @@ import React, {
 } from 'react';
 import type { Garment, Fabric } from '@/lib/data';
 import { useAuth, useFirestore, useDoc } from '@/firebase';
-import { doc, setDoc, serverTimestamp, getDoc, collection, updateDoc, addDoc } from 'firebase/firestore';
-import { User as FirebaseUser } from 'firebase/auth';
+import { doc, setDoc } from 'firebase/firestore';
 import { grantJoinBonusIfFirstLogin } from '@/lib/grantJoinBonus';
 
 interface UserData {
@@ -33,6 +32,8 @@ export interface MeasurementProfile {
     hip: number;
     inseam: number;
     shoulderWidth: number;
+    sleeveLength: number;
+    torsoLength: number;
   };
 }
 
@@ -69,10 +70,15 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const userDocRef =
-    firestore && firebaseUser
-      ? doc(firestore, 'users', firebaseUser.uid)
-      : null;
+  // Memoize the user document reference
+  const userDocRef = React.useMemo(() => {
+    if (firestore && firebaseUser) {
+      return doc(firestore, 'users', firebaseUser.uid);
+    }
+    return null;
+  }, [firestore, firebaseUser]);
+  
+  // useDoc will now react to userDocRef changes
   const { data: userData, status: userStatus } = useDoc<UserData>(userDocRef);
 
   const updateUserDocument = useCallback(
@@ -90,11 +96,9 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
   );
   
   useEffect(() => {
-    const checkAndGrantBonus = async (user: FirebaseUser) => {
-      await grantJoinBonusIfFirstLogin(user);
-    }
+    // Grant bonus only when a new firebase user appears
     if (firebaseUser) {
-      checkAndGrantBonus(firebaseUser);
+      grantJoinBonusIfFirstLogin(firebaseUser);
     }
   }, [firebaseUser]);
 
@@ -123,19 +127,22 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
         phone: firebaseUser.phoneNumber,
       });
 
+      // Now we also depend on userStatus from useDoc
       if (userStatus === 'loading') {
         setLoading(true);
       } else if (userStatus === 'success' && userData) {
         setCredits(userData.credits ?? 0);
         setProfiles(userData.profiles ?? []);
         setLoading(false);
-
       } else if (userStatus === 'error' || (userStatus === 'success' && !userData)) {
-        // Doc might not exist yet, grantJoinBonus will handle creation
+        // User doc might not exist yet, or there was an error.
+        // Let's assume 0 credits/profiles until the doc is created.
+        setCredits(0);
+        setProfiles([]);
         setLoading(false);
       }
     } else {
-      // No user is signed in
+      // Logged out
       setUser(null);
       setCredits(0);
       setProfiles([]);
@@ -149,7 +156,6 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
     if (cart.length > 0) {
       localStorage.setItem('cart', JSON.stringify(cart));
     } else {
-        // This handles clearing the cart from local storage when it's emptied.
         const localCart = localStorage.getItem('cart');
         if (localCart) {
             localStorage.removeItem('cart');
