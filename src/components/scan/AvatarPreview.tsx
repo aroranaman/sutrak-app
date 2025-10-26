@@ -53,11 +53,11 @@ function Body({ measurements }: { measurements: M }) {
        <group position={[0, inseamLen / 2, 0]}>
           <mesh position={[hipRadius * 0.6, 0, 0]}>
             <cylinderGeometry args={[legRadius, legRadius*0.8, inseamLen, 16]} />
-            <meshStandardMaterial color="#E0C09A" metalness={0.1} roughness={0.6}/>
+            <meshStandardMaterial color="#E0C0A9" metalness={0.1} roughness={0.6}/>
           </mesh>
           <mesh position={[-hipRadius * 0.6, 0, 0]}>
             <cylinderGeometry args={[legRadius, legRadius*0.8, inseamLen, 16]} />
-            <meshStandardMaterial color="#E0C09A" metalness={0.1} roughness={0.6}/>
+            <meshStandardMaterial color="#E0C0A9" metalness={0.1} roughness={0.6}/>
           </mesh>
        </group>
     </group>
