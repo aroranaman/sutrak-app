@@ -9,6 +9,7 @@ import { HornbillIcon } from '../icons/HornbillIcon';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/firebase';
 import ProfileSheet from './ProfileSheet';
+import { resetRecaptcha } from '@/app/login/send-otp';
 
 export default function Header() {
   const { user: appUser, credits } = useUser();
@@ -21,6 +22,7 @@ export default function Header() {
 
   const handleSignOut = async () => {
     await signOut();
+    resetRecaptcha(); // Clear recaptcha on sign out
     router.push('/');
   };
 
