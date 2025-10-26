@@ -22,7 +22,7 @@ import { Loader2, LogIn } from 'lucide-react';
 export default function LoginPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const auth = useAuth(); // Changed from useAuth() to use the auth object directly
+  const { auth, loading: authLoading } = useAuth(); 
   const { toast } = useToast();
 
   const [phoneNumber, setPhoneNumber] = useState('');
@@ -33,12 +33,14 @@ export default function LoginPage() {
   const [otpSent, setOtpSent] = useState(false);
 
   const recaptchaVerifierRef = useRef<RecaptchaVerifier | null>(null);
+  const recaptchaContainerRef = useRef<HTMLDivElement>(null);
+
 
   useEffect(() => {
-    if (auth && !recaptchaVerifierRef.current) {
+    if (!authLoading && auth && !recaptchaVerifierRef.current && recaptchaContainerRef.current) {
         recaptchaVerifierRef.current = new RecaptchaVerifier(
           auth,
-          'recaptcha-container',
+          recaptchaContainerRef.current,
           {
             size: 'invisible',
           }
@@ -55,7 +57,7 @@ export default function LoginPage() {
     return () => {
         recaptchaVerifierRef.current?.clear();
     }
-  }, [auth, toast]);
+  }, [auth, authLoading, toast]);
 
   const handleSendOtp = async () => {
     if (!auth || !recaptchaVerifierRef.current) {
@@ -93,7 +95,10 @@ export default function LoginPage() {
         description: error.message || 'Failed to send OTP. Please try again.',
       });
        // Reset reCAPTCHA for retry
-      recaptchaVerifierRef.current?.clear();
+      if (recaptchaVerifierRef.current) {
+        recaptchaVerifierRef.current.clear();
+        recaptchaVerifierRef.current.render();
+      }
     } finally {
       setLoading(false);
     }
@@ -155,7 +160,7 @@ export default function LoginPage() {
                 </div>
                 <Button
                   onClick={handleSendOtp}
-                  disabled={loading || !phoneNumber}
+                  disabled={loading || authLoading || !phoneNumber}
                   className="w-full bg-accent text-accent-foreground hover:bg-accent/90"
                 >
                   {loading ? (
@@ -199,6 +204,7 @@ export default function LoginPage() {
               </div>
             )}
           </div>
+          <div ref={recaptchaContainerRef} />
         </CardContent>
       </Card>
     </div>

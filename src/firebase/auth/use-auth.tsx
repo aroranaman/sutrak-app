@@ -6,7 +6,7 @@ import {
   signOut as firebaseSignOut,
   type User,
 } from 'firebase/auth';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, useContext } from 'react';
 
 import { useFirebaseApp } from '@/firebase/provider';
 import { useRouter } from 'next/navigation';
