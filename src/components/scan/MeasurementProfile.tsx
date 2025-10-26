@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from 'react';
@@ -17,14 +18,14 @@ import {
 } from "@/components/ui/tooltip";
 import { saveMeasurementClient } from '@/actions/saveMeasurementClient';
 import AvatarCanvasShell from './AvatarCanvasShell';
-import type { Measurements } from './AvatarPreview';
+import type { MeasurementProfile } from '@/contexts/UserContext'; // Use the one from context
 
 interface MeasurementProfileProps {
   onNewScan: () => void;
-  measurements: Partial<Measurements>;
+  measurements: Partial<MeasurementProfile['measurements']>;
 }
 
-const measurementInfo: Record<string, string> = {
+const measurementInfo: Record<keyof MeasurementProfile['measurements'], string> = {
   bust: "The measurement around the fullest part of your chest.",
   hip: "The measurement around the widest part of your hips.",
   shoulderWidth: "The distance from the end of one shoulder to the other.",
@@ -33,7 +34,7 @@ const measurementInfo: Record<string, string> = {
   inseam: "The length of your inner leg, from your crotch to your ankle.",
 };
 
-function normalize(m: Partial<Measurements>): Measurements {
+function normalize(m: Partial<MeasurementProfile['measurements']>): MeasurementProfile['measurements'] {
   // Defaults keep avatar safe even if some fields are missing
   return {
     bust: Number(m.bust ?? 95.5),
@@ -77,12 +78,16 @@ export default function MeasurementProfile({ onNewScan, measurements: measured }
     
     setSaving(true);
     try {
-      await saveMeasurementClient(firebaseUser, profileName, measurements);
-      
-      addProfile({
+      const newProfile: MeasurementProfile = {
           name: profileName,
           measurements: measurements
-      }, true); // pass skipDeduction = true
+      };
+
+      // The client action now returns the new balance.
+      const result = await saveMeasurementClient(firebaseUser, newProfile);
+      
+      // Update local context state after successful server update
+      addProfile(newProfile, result.balance);
 
       setIsSaved(true);
       toast({
@@ -127,7 +132,7 @@ export default function MeasurementProfile({ onNewScan, measurements: measured }
           <AvatarCanvasShell measurements={measurements} />
           <TooltipProvider>
             <div className="grid grid-cols-1 gap-4 text-lg">
-              {Object.entries(measurements).map(([key, value]: [string, any]) => (
+              {(Object.keys(measurements) as Array<keyof typeof measurements>).map((key) => (
                 <div key={key} className="flex justify-between items-center p-3 bg-secondary rounded-lg">
                     <div className="flex items-center gap-2">
                         <span className="capitalize font-medium text-secondary-foreground">
@@ -142,7 +147,7 @@ export default function MeasurementProfile({ onNewScan, measurements: measured }
                             </TooltipContent>
                         </Tooltip>
                     </div>
-                  <span className="font-bold text-primary">{value.toFixed(1)} cm</span>
+                  <span className="font-bold text-primary">{measurements[key].toFixed(1)} cm</span>
                 </div>
               ))}
             </div>

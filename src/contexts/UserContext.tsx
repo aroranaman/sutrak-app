@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, {
@@ -25,16 +26,16 @@ interface User {
   phone: string | null;
 }
 
+// This should match the structure used in AvatarPreview and MeasurementProfile
 export interface MeasurementProfile {
   name: string;
   measurements: {
     bust: number;
-    waist: number;
     hip: number;
-    inseam: number;
     shoulderWidth: number;
     sleeveLength: number;
     torsoLength: number;
+    inseam: number;
   };
 }
 
@@ -51,7 +52,7 @@ interface UserContextType {
   profiles: MeasurementProfile[];
   cart: CartItem[];
   loading: boolean;
-  addProfile: (profile: MeasurementProfile, skipDeduction?: boolean) => boolean;
+  addProfile: (profile: MeasurementProfile, newBalance: number) => void;
   addCredits: (amount: number) => void;
   addToCart: (garment: Garment, fabric: Fabric) => void;
   removeFromCart: (itemId: string) => void;
@@ -172,24 +173,13 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
   
   const clearCart = () => {
     setCart([]);
-  }
+  };
 
-  const addProfile = (profile: MeasurementProfile, skipDeduction = false) => {
-    if (skipDeduction) {
-      setProfiles(prev => [...prev, profile]);
-      return true;
-    }
-
-    if (credits >= 100) {
-      const newCredits = credits - 100;
-      const newProfiles = [...profiles, profile];
-      if (updateUserDocument({ credits: newCredits, profiles: newProfiles })) {
-        setCredits(newCredits);
-        setProfiles(newProfiles);
-        return true;
-      }
-    }
-    return false;
+  const addProfile = (profile: MeasurementProfile, newBalance: number) => {
+    // This function now just updates the local state.
+    // The server update is handled by the action.
+    setProfiles(prev => [...prev, profile]);
+    setCredits(newBalance);
   };
 
   const addCredits = (amount: number) => {
