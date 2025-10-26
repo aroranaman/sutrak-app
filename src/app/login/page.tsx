@@ -22,7 +22,7 @@ import { Loader2, LogIn } from 'lucide-react';
 export default function LoginPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { auth, loading: authLoading } = useAuth(); 
+  const { auth, loading: authLoading } = useAuth();
   const { toast } = useToast();
 
   const [phoneNumber, setPhoneNumber] = useState('');
@@ -33,34 +33,34 @@ export default function LoginPage() {
   const [otpSent, setOtpSent] = useState(false);
 
   const recaptchaVerifierRef = useRef<RecaptchaVerifier | null>(null);
-  const recaptchaContainerRef = useRef<HTMLDivElement>(null);
-
 
   useEffect(() => {
     if (auth && !recaptchaVerifierRef.current) {
-      if (recaptchaContainerRef.current) {
-        // This is a defensive initialization, it might be re-initialized in handleSendOtp
-        recaptchaVerifierRef.current = new RecaptchaVerifier(
-          auth,
-          recaptchaContainerRef.current,
-          {
-            size: 'invisible',
-            'callback': (response: any) => {
-              // reCAPTCHA solved, allow signInWithPhoneNumber.
-            },
-            'expired-callback': () => {
-              // Response expired. Ask user to solve reCAPTCHA again.
-            }
-          }
-        );
-        recaptchaVerifierRef.current.render().catch((error) => {
-          toast({
-            variant: "destructive",
-            title: "reCAPTCHA Error",
-            description: "Could not render reCAPTCHA. Please try again.",
-          });
+      recaptchaVerifierRef.current = new RecaptchaVerifier(
+        auth,
+        'recaptcha-container',
+        {
+          size: 'invisible',
+          callback: (response: any) => {
+            // reCAPTCHA solved, allow signInWithPhoneNumber.
+          },
+          'expired-callback': () => {
+            // Response expired. Ask user to solve reCAPTCHA again.
+            toast({
+              title: 'reCAPTCHA Expired',
+              description: 'Please try sending the OTP again.',
+            });
+          },
+        }
+      );
+      recaptchaVerifierRef.current.render().catch((error) => {
+        console.error("reCAPTCHA render error:", error);
+        toast({
+          variant: "destructive",
+          title: "reCAPTCHA Error",
+          description: "Could not render reCAPTCHA. Please refresh and try again.",
         });
-      }
+      });
     }
   }, [auth, toast]);
 
@@ -74,20 +74,12 @@ export default function LoginPage() {
       return;
     }
     setLoading(true);
-    try {
-      // Ensure verifier is created if it hasn't been
-      if (!recaptchaVerifierRef.current && recaptchaContainerRef.current) {
-         recaptchaVerifierRef.current = new RecaptchaVerifier(
-          auth,
-          recaptchaContainerRef.current,
-          {
-            size: 'invisible',
-          }
-        );
-        await recaptchaVerifierRef.current.render();
-      }
 
-      const verifier = recaptchaVerifierRef.current!;
+    try {
+      const verifier = recaptchaVerifierRef.current;
+      if (!verifier) {
+        throw new Error("reCAPTCHA verifier not initialized.");
+      }
       
       // The Indian country code is +91
       const fullPhoneNumber = `+91${phoneNumber}`;
@@ -217,7 +209,6 @@ export default function LoginPage() {
               </div>
             )}
           </div>
-          <div ref={recaptchaContainerRef} id="recaptcha-container" />
         </CardContent>
       </Card>
     </div>
