@@ -87,7 +87,7 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
     },
     [firestore, firebaseUser]
   );
-
+  
   const createNewUserDoc = useCallback(
     async (newUser: FirebaseUser) => {
       if (!firestore) return;
@@ -114,25 +114,7 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
           profiles: [],
         };
         await setDoc(newUserDocRef, initialData);
-        setCredits(initialCredits);
-        setProfiles([]);
-      } else {
-        const data = docSnap.data() as UserData;
-        const currentCredits = data.credits || 0;
-
-        // Special check for the admin account to top-up credits if needed
-        if (
-          newUser.phoneNumber === '+918979292639' &&
-          currentCredits < 10000
-        ) {
-          await setDoc(newUserDocRef, { credits: 10000 }, { merge: true });
-          setCredits(10000);
-        } else {
-          setCredits(currentCredits);
-        }
-        setProfiles(data.profiles || []);
       }
-      setLoading(false);
     },
     [firestore]
   );
@@ -165,22 +147,18 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
       if (userStatus === 'loading') {
         setLoading(true);
       } else if (userStatus === 'success' && userData) {
-        const currentCredits = userData.credits ?? 0;
-        // Ensure admin account always has at least 10000 credits
-        if (
-          firebaseUser.phoneNumber === '+918979292639' &&
-          currentCredits < 10000
-        ) {
-          if (firestore) {
-            const adminDocRef = doc(firestore, 'users', firebaseUser.uid);
-            setDoc(adminDocRef, { credits: 10000 }, { merge: true });
+          const isAdmin = firebaseUser.phoneNumber === '+918979292639';
+          const currentCredits = userData.credits ?? 0;
+          
+          if (isAdmin && currentCredits < 10000) {
+             updateUserDocument({ credits: 10000 });
+             setCredits(10000);
+          } else {
+            setCredits(currentCredits);
           }
-          setCredits(10000);
-        } else {
-          setCredits(currentCredits);
-        }
-        setProfiles(userData.profiles ?? []);
-        setLoading(false);
+          setProfiles(userData.profiles ?? []);
+          setLoading(false);
+
       } else if (userStatus === 'error' || (userStatus === 'success' && !userData)) {
         // This case handles a new user where the doc doesn't exist yet.
         createNewUserDoc(firebaseUser);
@@ -192,7 +170,7 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
       setProfiles([]);
       setLoading(false);
     }
-  }, [firebaseUser, authLoading, firestore, userData, userStatus, createNewUserDoc]);
+  }, [firebaseUser, authLoading, userStatus, userData, createNewUserDoc, updateUserDocument]);
 
   useEffect(() => {
     if (cart.length > 0) {
