@@ -32,12 +32,13 @@ const nextConfig: NextConfig = {
     ],
   },
   devIndicators: {
-    buildActivity: true,
-    buildActivityPosition: 'bottom-right',
+    position: 'bottom-right',
   },
   experimental: {
-    allowedDevOrigins: ['**/*.cloudworkstations.dev'],
+    // Empty for now, but keeping the key in case it's needed later
   },
+  // Add allowedDevOrigins at the top level
+  allowedDevOrigins: ['**/*.cloudworkstations.dev'],
 };
 
 export default nextConfig;
