@@ -25,7 +25,6 @@ const app: FirebaseApp = initializeFirebaseApp();
 // Initialize services and export them as singletons.
 const auth: Auth = getAuth(app);
 const firestore: Firestore = initializeFirestore(app, {
-  // Use REST for robustness in cloud environments
   preferRest: true, 
   localCache: persistentLocalCache({
     tabManager: persistentMultipleTabManager(),

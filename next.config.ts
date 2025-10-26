@@ -34,10 +34,6 @@ const nextConfig: NextConfig = {
   devIndicators: {
     position: 'bottom-right',
   },
-  experimental: {
-    // Empty for now, but keeping the key in case it's needed later
-  },
-  // Add allowedDevOrigins at the top level
   allowedDevOrigins: ['**/*.cloudworkstations.dev'],
   webpack: (config) => {
     config.resolve.alias = {
