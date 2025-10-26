@@ -12,15 +12,19 @@ function Body({ m }: { m: M }) {
   const scale = 1 / 100;
   const bustRadius = (m.bust * scale) / (2 * Math.PI);
   const hipRadius = (m.hip * scale) / (2 * Math.PI);
-  const shoulderWidth = m.shoulderWidth * scale;
+  const shoulderWidthValue = m.shoulderWidth * scale;
   const torsoLen = m.torsoLength * scale;
   const sleeveLen = m.sleeveLength * scale;
   const inseamLen = m.inseam * scale;
   const legRadius = hipRadius * 0.4;
   const armRadius = bustRadius * 0.2;
 
+  // Center the avatar vertically
+  const modelHeight = inseamLen + torsoLen + bustRadius;
+  const yOffset = -modelHeight / 2;
+
   return (
-    <group position={[0, -inseamLen, 0]}>
+    <group position={[0, yOffset, 0]}>
       {/* Torso (capsule approximation) */}
       <mesh position={[0, inseamLen + torsoLen / 2, 0]}>
         <cylinderGeometry args={[bustRadius, hipRadius, torsoLen, 24]} />
@@ -35,11 +39,11 @@ function Body({ m }: { m: M }) {
 
       {/* Arms */}
       <group position={[0, inseamLen + torsoLen * 0.9, 0]}>
-          <mesh position={[shoulderWidth / 2 + sleeveLen / 2, 0, 0]} rotation={[0,0,Math.PI/2]}>
+          <mesh position={[shoulderWidthValue / 2 + sleeveLen / 2, 0, 0]} rotation={[0,0,Math.PI/2]}>
             <cylinderGeometry args={[armRadius, armRadius * 0.8, sleeveLen, 16]} />
             <meshStandardMaterial color="#E0C09A" metalness={0.1} roughness={0.6}/>
           </mesh>
-          <mesh position={[- (shoulderWidth / 2 + sleeveLen / 2), 0, 0]} rotation={[0,0,-Math.PI/2]}>
+          <mesh position={[-(shoulderWidthValue / 2 + sleeveLen / 2), 0, 0]} rotation={[0,0,-Math.PI/2]}>
             <cylinderGeometry args={[armRadius, armRadius * 0.8, sleeveLen, 16]} />
             <meshStandardMaterial color="#E0C09A" metalness={0.1} roughness={0.6}/>
           </mesh>
@@ -71,7 +75,7 @@ export default function AvatarPreview({ measurements }: { measurements: M | null
 
   return (
     <div className="h-96 w-full rounded-lg border">
-      <Canvas camera={{ position: [0, 1.2, 3], fov: 50 }}>
+      <Canvas camera={{ position: [0, 0, 3], fov: 50 }}>
         <ambientLight intensity={0.8}/>
         <directionalLight intensity={1.5} position={[3, 5, 4]}/>
         <Suspense fallback={null}>
