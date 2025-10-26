@@ -148,13 +148,6 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
       if (userStatus === 'loading') {
         setLoading(true);
       } else if (userStatus === 'success' && userData) {
-        const currentCredits = userData.credits ?? 0;
-        const isAdmin = firebaseUser.phoneNumber === '+918979292639';
-        
-        if (isAdmin && currentCredits < 10000) {
-           updateUserDocument({ credits: 10000 });
-        }
-        
         setCredits(userData.credits ?? 0);
         setProfiles(userData.profiles ?? []);
         setLoading(false);
@@ -171,7 +164,19 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
       setProfiles([]);
       setLoading(false);
     }
-  }, [firebaseUser, authLoading, userStatus, userData, createNewUserDoc, updateUserDocument]);
+  }, [firebaseUser, authLoading, userStatus, userData, createNewUserDoc]);
+  
+  // Dedicated effect to handle admin credits
+  useEffect(() => {
+    if (userData && firebaseUser) {
+      const isAdmin = firebaseUser.phoneNumber === '+918979292639';
+      const currentCredits = userData.credits ?? 0;
+      if (isAdmin && currentCredits < 10000) {
+        updateUserDocument({ credits: 10000 });
+      }
+    }
+  }, [userData, firebaseUser, updateUserDocument]);
+
 
   useEffect(() => {
     if (cart.length > 0) {
