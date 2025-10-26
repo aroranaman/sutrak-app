@@ -1,4 +1,5 @@
 'use client';
+
 import { useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import type { ConfirmationResult } from 'firebase/auth';
@@ -13,7 +14,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, LogIn } from 'lucide-react';
-import { sendOtp, resetRecaptcha } from './send-otp';
+import { sendOtp, resetRecaptcha, confirmOtp, probeOnline } from './send-otp';
 import { grantJoinBonusIfFirstLogin } from '@/lib/grantJoinBonus';
 
 export default function LoginPage() {
@@ -31,9 +32,15 @@ export default function LoginPage() {
   const handleSendOtp = async () => {
     setLoading(true);
     try {
+      // Quick connectivity probe for clearer UX
+      if (!(await probeOnline())) {
+        throw new Error('BROWSER_OFFLINE');
+      }
+
       // The Indian country code is +91
-      const fullPhoneNumber = `+91${phoneNumber}`;
+      const fullPhoneNumber = `+91${phoneNumber.replace(/\s+/g, '')}`;
       const confirmation = await sendOtp(fullPhoneNumber);
+
       setConfirmationResult(confirmation);
       setOtpSent(true);
       toast({
@@ -42,20 +49,21 @@ export default function LoginPage() {
       });
     } catch (error: any) {
       console.error('Error sending OTP:', error);
-       const message = String(error?.message || 'Failed to send OTP.');
-      if (message.toLowerCase().includes('offline')) {
-          toast({
-            variant: 'destructive',
-            title: 'Network Error',
-            description: 'Could not connect to the server. Please check your connection and try again.',
-            duration: 9000,
-          });
+      const message = String(error?.message || 'Failed to send OTP.');
+      if (message === 'BROWSER_OFFLINE' || /offline/i.test(message)) {
+        toast({
+          variant: 'destructive',
+          title: 'Network Error',
+          description:
+            'Could not connect to the server. Your browser appears offline (proxy/VPN/workspace issue). Please try a normal browser outside Workstations or check your connection.',
+          duration: 9000,
+        });
       } else {
-         toast({
-            variant: 'destructive',
-            title: 'Error Sending OTP',
-            description: message,
-          });
+        toast({
+          variant: 'destructive',
+          title: 'Error Sending OTP',
+          description: message,
+        });
       }
       // Reset reCAPTCHA on error
       resetRecaptcha();
@@ -68,7 +76,11 @@ export default function LoginPage() {
     if (!confirmationResult) return;
     setLoading(true);
     try {
-      const result = await confirmationResult.confirm(otp);
+      if (!(await probeOnline())) {
+        throw new Error('BROWSER_OFFLINE');
+      }
+
+      const result = await confirmOtp(confirmationResult, otp);
       await grantJoinBonusIfFirstLogin(result.user);
 
       toast({
@@ -80,31 +92,32 @@ export default function LoginPage() {
     } catch (error: any) {
       console.error('Error verifying OTP:', error);
       const message = String(error?.message || 'Invalid OTP. Please try again.');
-       if (message.toLowerCase().includes('offline')) {
-           toast({
-            variant: 'destructive',
-            title: 'Network Error',
-            description: 'Could not verify OTP. The client appears to be offline.',
-             duration: 9000,
-          });
-       } else {
-           toast({
-            variant: 'destructive',
-            title: 'Error Verifying OTP',
-            description: message,
-          });
-       }
+      if (message === 'BROWSER_OFFLINE' || /offline/i.test(message)) {
+        toast({
+          variant: 'destructive',
+          title: 'Network Error',
+          description:
+            'Could not verify OTP because the client appears to be offline. If you are in Cloud Workstations, try a regular browser.',
+          duration: 9000,
+        });
+      } else {
+        toast({
+          variant: 'destructive',
+          title: 'Error Verifying OTP',
+          description: message,
+        });
+      }
     } finally {
       setLoading(false);
     }
   };
-  
+
   const handlePhoneNumberChange = () => {
     setOtpSent(false);
     setOtp('');
     setConfirmationResult(null);
     resetRecaptcha();
-  }
+  };
 
   return (
     <div className="container flex items-center justify-center py-24">
@@ -154,6 +167,9 @@ export default function LoginPage() {
               <div className="space-y-4">
                 <Input
                   id="otp"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  maxLength={6}
                   type="text"
                   placeholder="Enter 6-digit OTP"
                   value={otp}
@@ -162,7 +178,7 @@ export default function LoginPage() {
                 />
                 <Button
                   onClick={handleVerifyOtp}
-                  disabled={loading || !otp}
+                  disabled={loading || otp.length !== 6}
                   className="w-full"
                 >
                   {loading ? (
@@ -170,10 +186,7 @@ export default function LoginPage() {
                   ) : null}
                   Verify OTP
                 </Button>
-                <Button
-                  variant="link"
-                  onClick={handlePhoneNumberChange}
-                >
+                <Button variant="link" onClick={handlePhoneNumberChange}>
                   Change phone number
                 </Button>
               </div>
