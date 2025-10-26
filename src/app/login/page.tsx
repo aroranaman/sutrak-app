@@ -33,35 +33,8 @@ export default function LoginPage() {
   const [otpSent, setOtpSent] = useState(false);
 
   const recaptchaVerifierRef = useRef<RecaptchaVerifier | null>(null);
-
-  useEffect(() => {
-    if (!authLoading && auth && !recaptchaVerifierRef.current) {
-      recaptchaVerifierRef.current = new RecaptchaVerifier(
-        auth,
-        'recaptcha-container',
-        {
-          size: 'invisible',
-          callback: (response: any) => {
-            // reCAPTCHA solved, allow signInWithPhoneNumber.
-          },
-          'expired-callback': () => {
-            toast({
-              title: 'reCAPTCHA Expired',
-              description: 'Please try sending the OTP again.',
-            });
-          },
-        }
-      );
-      recaptchaVerifierRef.current.render().catch((error) => {
-        console.error("reCAPTCHA render error:", error);
-        toast({
-          variant: "destructive",
-          title: "reCAPTCHA Error",
-          description: "Could not render reCAPTCHA. Please refresh and try again.",
-        });
-      });
-    }
-  }, [auth, authLoading, toast]);
+  // We need a separate ref to track if the widget has been rendered.
+  const recaptchaWidgetIdRef = useRef<number | null>(null);
 
   const handleSendOtp = async () => {
     if (!auth) {
@@ -75,10 +48,29 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const verifier = recaptchaVerifierRef.current;
-      if (!verifier) {
-        throw new Error("reCAPTCHA verifier not initialized.");
+      // Create a new verifier instance if it doesn't exist.
+      if (!recaptchaVerifierRef.current) {
+        recaptchaVerifierRef.current = new RecaptchaVerifier(
+          auth,
+          'recaptcha-container',
+          {
+            size: 'invisible',
+            callback: (response: any) => {
+              // reCAPTCHA solved, allow signInWithPhoneNumber.
+            },
+            'expired-callback': () => {
+              toast({
+                title: 'reCAPTCHA Expired',
+                description: 'Please try sending the OTP again.',
+              });
+            },
+          }
+        );
+        // Render the reCAPTCHA widget and store its ID.
+        recaptchaWidgetIdRef.current = await recaptchaVerifierRef.current.render();
       }
+
+      const verifier = recaptchaVerifierRef.current;
       
       // The Indian country code is +91
       const fullPhoneNumber = `+91${phoneNumber}`;
@@ -87,6 +79,7 @@ export default function LoginPage() {
         fullPhoneNumber,
         verifier
       );
+
       setConfirmationResult(confirmation);
       setOtpSent(true);
       toast({
@@ -100,15 +93,10 @@ export default function LoginPage() {
         title: 'Error',
         description: error.message || 'Failed to send OTP. Please try again.',
       });
-       if (recaptchaVerifierRef.current) {
-        // Reset the reCAPTCHA verifier widget
-        recaptchaVerifierRef.current.render().then(widgetId => {
-          if (typeof (window as any).grecaptcha !== 'undefined') {
-            (window as any).grecaptcha.reset(widgetId);
-          }
-        });
+      // Reset the reCAPTCHA on error.
+      if (typeof window !== 'undefined' && (window as any).grecaptcha && recaptchaWidgetIdRef.current !== null) {
+        (window as any).grecaptcha.reset(recaptchaWidgetIdRef.current);
       }
-
     } finally {
       setLoading(false);
     }
@@ -205,7 +193,6 @@ export default function LoginPage() {
                   variant="link"
                   onClick={() => {
                     setOtpSent(false);
-                    setPhoneNumber('');
                     setOtp('');
                   }}
                 >
