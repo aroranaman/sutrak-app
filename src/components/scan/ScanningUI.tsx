@@ -9,7 +9,6 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Loader2, Camera, UserCheck, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import ScanProcessing from './ScanProcessing';
-import ScanRetrySuggestion from './ScanRetrySuggestion';
 
 interface ScanningUIProps {
   onComplete: (results: any) => void;
@@ -17,13 +16,15 @@ interface ScanningUIProps {
 
 type ScanStage = 'idle' | 'starting' | 'countdown' | 'capturing' | 'processing';
 
+// Correct, accurate measurements as specified.
+// This simulates the result from a high-fidelity backend 3D Reconstruction Service.
 const correctMeasurements = {
-  bust: 95.2,
-  hip: 94.7,
-  shoulderWidth: 44.5,
-  sleeveLength: 56.0,
-  torsoLength: 60.0,
-  inseam: 58.0,
+    bust: 95.2,
+    hip: 94.7,
+    shoulderWidth: 44.5,
+    sleeveLength: 56.0,
+    torsoLength: 60.0,
+    inseam: 58.0,
 };
 
 export default function ScanningUI({ onComplete }: ScanningUIProps) {
@@ -37,11 +38,12 @@ export default function ScanningUI({ onComplete }: ScanningUIProps) {
 
   // --- Camera & Scan Flow ---
   const startScan = async () => {
-    if (!userHeight || parseInt(userHeight) <= 0) {
+    const heightCm = parseInt(userHeight);
+    if (!userHeight || isNaN(heightCm) || heightCm < 140 || heightCm > 210) {
       toast({
         variant: 'destructive',
         title: 'Invalid Height',
-        description: 'Please enter a valid height in cm.',
+        description: 'Please enter a valid height between 140 and 210 cm.',
       });
       return;
     }
@@ -55,7 +57,7 @@ export default function ScanningUI({ onComplete }: ScanningUIProps) {
         videoRef.current.srcObject = stream;
       }
       setHasCameraPermission(true);
-      runCountdownSequence();
+      runScanSequence();
     } catch (error) {
       console.error('Error accessing camera:', error);
       setHasCameraPermission(false);
@@ -68,23 +70,23 @@ export default function ScanningUI({ onComplete }: ScanningUIProps) {
     }
   };
 
-  const runCountdownSequence = async () => {
-    // Countdown for Front
-    await runCountdown(5, 'Get Ready: Face Front');
-    setScanMessage('Capturing Front...');
-    await new Promise(r => setTimeout(r, 1000)); // Simulate capture
+  const runScanSequence = async () => {
+    // This simulates the capture process. In a real app, this would stream video/IMU data.
+    await runCountdown(3, 'Get Ready: Face Front');
+    setScanMessage('Capturing...');
+    await new Promise(r => setTimeout(r, 2000)); // Simulate capture duration
 
-    // Countdown for Side
-    await runCountdown(5, 'Now, Turn to Your Side');
-    setScanMessage('Capturing Side...');
-    await new Promise(r => setTimeout(r, 1000)); // Simulate capture
+    await runCountdown(3, 'Now, Turn 360° Slowly');
+    setScanMessage('Scanning...');
+    await new Promise(r => setTimeout(r, 5000)); // Simulate 360 capture
 
     stopCamera();
     setScanStage('processing');
 
-    // Simulate backend processing
+    // Simulate backend processing time as per the architecture diagram (Recon, Draping, etc.)
     setTimeout(() => {
-       const finalMeasurements = {
+        // The backend service returns perfect, accurate measurements.
+        const finalMeasurements = {
             upperTorsoCircumferenceCm: correctMeasurements.bust,
             hipCircumferenceCm: correctMeasurements.hip,
             shoulderWidthCm: correctMeasurements.shoulderWidth,
@@ -128,7 +130,7 @@ export default function ScanningUI({ onComplete }: ScanningUIProps) {
   };
   
   if (scanStage === 'processing') {
-      return <ScanProcessing onComplete={() => {}} />;
+      return <ScanProcessing onComplete={() => onComplete(correctMeasurements)} />;
   }
 
   return (
@@ -171,7 +173,7 @@ export default function ScanningUI({ onComplete }: ScanningUIProps) {
           </div>
 
           <div className="space-y-2">
-            <label htmlFor="heightInput" className="block text-sm font-medium text-foreground/80">Your Height (in cm)</label>
+            <label htmlFor="heightInput" className="block text-sm font-medium text-foreground/80">Your Height (140-210 cm)</label>
             <Input
               type="number"
               id="heightInput"
@@ -179,6 +181,8 @@ export default function ScanningUI({ onComplete }: ScanningUIProps) {
               onChange={(e) => setUserHeight(e.target.value)}
               placeholder="e.g., 170"
               disabled={scanStage !== 'idle'}
+              min="140"
+              max="210"
             />
           </div>
 
@@ -198,5 +202,3 @@ export default function ScanningUI({ onComplete }: ScanningUIProps) {
     </Card>
   );
 }
-
-    

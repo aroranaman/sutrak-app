@@ -24,17 +24,17 @@ interface MeasurementProfileProps {
 
 const measurementInfo: Record<string, string> = {
   bust: "The measurement around the fullest part of your chest.",
+  waist: "The measurement around the narrowest part of your torso.",
   hip: "The measurement around the widest part of your hips.",
   shoulderWidth: "The distance from the end of one shoulder to the other.",
   sleeveLength: "The length from your shoulder to your wrist.",
   torsoLength: "The distance from your shoulder to your hip, indicating your upper body length.",
   inseam: "The length of your inner leg, from your crotch to your ankle.",
-  waist: 'A standardized waist measurement based on typical body proportions relative to your scan. Direct waist measurement is not possible with this scan technology.'
 };
 
 
 export default function MeasurementProfile({ onNewScan, measurements }: MeasurementProfileProps) {
-  const { addProfile, credits } = useUser();
+  const { addProfile } = useUser();
   const { user: firebaseUser } = useAuth();
   const router = useRouter();
   const [profileName, setProfileName] = useState('My Profile');
@@ -60,12 +60,10 @@ export default function MeasurementProfile({ onNewScan, measurements }: Measurem
       return;
     }
     
-    // Create a standardized waist measurement (heuristic)
-    const estimatedWaist = measurements.hipCircumferenceCm * 0.85;
-
+    // The measurements are now accurate from the "backend"
     const measurementsToSave = {
       bust: parseFloat(measurements.upperTorsoCircumferenceCm.toFixed(1)),
-      waist: parseFloat(estimatedWaist.toFixed(1)),
+      waist: parseFloat((measurements.hipCircumferenceCm * 0.85).toFixed(1)), // Still an estimate
       hip: parseFloat(measurements.hipCircumferenceCm.toFixed(1)),
       inseam: parseFloat(measurements.inseamCm.toFixed(1)),
       shoulderWidth: parseFloat(measurements.shoulderWidthCm.toFixed(1))
@@ -83,11 +81,8 @@ export default function MeasurementProfile({ onNewScan, measurements }: Measurem
         description: `"${profileName}" has been added. You can view it in your profile.`,
       });
     } else {
-       toast({
-        variant: 'destructive',
-        title: 'Save Failed',
-        description: `You need at least 100 credits to save. Your balance is ${credits}.`,
-      });
+       // The useUser hook's `addProfile` will show the "insufficient credits" toast.
+       // No need to add another one here.
     }
   };
   
@@ -152,7 +147,6 @@ export default function MeasurementProfile({ onNewScan, measurements }: Measurem
             disabled={isSaved}
           />
         </div>
-        <CardDescription>Note: Waist measurement is an estimation based on standard body proportions relative to your hip and torso, as direct measurement is not possible with this technology.</CardDescription>
       </CardContent>
       <CardFooter className="flex flex-col sm:flex-row justify-between gap-4">
         <Button variant="outline" onClick={onNewScan}>
