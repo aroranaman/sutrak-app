@@ -91,7 +91,7 @@ export default function TryOnInterface({ garment }: TryOnInterfaceProps) {
       addCredits(500);
       toast({
         title: "Bonus Credits Added!",
-        description: `You've earned 500 bonus credits for your order of ₹${garment.price.toLocaleString()} or more!`
+        description: `You've earned 500 bonus credits for your order!`
       })
     } else {
        toast({

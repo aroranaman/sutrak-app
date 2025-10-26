@@ -79,17 +79,21 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
     const docSnap = await getDoc(newUserDocRef);
 
     if (!docSnap.exists()) {
+      // Check if the new user is the special test account
+      const isAdmin = newUser.phoneNumber === '+918979292639';
+      const initialCredits = isAdmin ? 10000 : 500;
+
       const initialData = {
         uid: newUser.uid,
         email: newUser.email,
         displayName: newUser.displayName,
         phoneNumber: newUser.phoneNumber,
         createdAt: serverTimestamp(),
-        credits: 10000,
+        credits: initialCredits,
         profiles: [],
       };
       await setDoc(newUserDocRef, initialData);
-      setCredits(10000);
+      setCredits(initialCredits);
       setProfiles([]);
     } else {
         const data = docSnap.data() as UserData;
