@@ -165,7 +165,7 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [firebaseUser, authLoading, userStatus, userData, createNewUserDoc]);
   
-  // Dedicated effect to handle admin credits
+  // Dedicated effect to handle admin credits, preventing loops.
   useEffect(() => {
     if (userData && firebaseUser) {
       const isAdmin = firebaseUser.phoneNumber === '+918979292639';
