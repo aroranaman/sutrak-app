@@ -22,7 +22,7 @@ import { Loader2, LogIn } from 'lucide-react';
 export default function LoginPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { auth } = useAuth();
+  const auth = useAuth(); // Changed from useAuth() to use the auth object directly
   const { toast } = useToast();
 
   const [phoneNumber, setPhoneNumber] = useState('');
@@ -32,11 +32,33 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [otpSent, setOtpSent] = useState(false);
 
-  // We will create the verifier on demand now.
   const recaptchaVerifierRef = useRef<RecaptchaVerifier | null>(null);
 
+  useEffect(() => {
+    if (auth && !recaptchaVerifierRef.current) {
+        recaptchaVerifierRef.current = new RecaptchaVerifier(
+          auth,
+          'recaptcha-container',
+          {
+            size: 'invisible',
+          }
+        );
+        recaptchaVerifierRef.current.render().catch((error) => {
+          toast({
+            variant: "destructive",
+            title: "reCAPTCHA Error",
+            description: "Could not render reCAPTCHA. Please refresh the page.",
+          })
+        });
+    }
+
+    return () => {
+        recaptchaVerifierRef.current?.clear();
+    }
+  }, [auth, toast]);
+
   const handleSendOtp = async () => {
-    if (!auth) {
+    if (!auth || !recaptchaVerifierRef.current) {
       toast({
         variant: 'destructive',
         title: 'Error',
@@ -48,17 +70,6 @@ export default function LoginPage() {
 
     setLoading(true);
     try {
-      // Create the verifier on-demand
-      if (!recaptchaVerifierRef.current) {
-        recaptchaVerifierRef.current = new RecaptchaVerifier(
-          auth,
-          'recaptcha-container',
-          {
-            size: 'invisible',
-          }
-        );
-      }
-      
       const verifier = recaptchaVerifierRef.current;
       
       // The Indian country code is +91
