@@ -2,7 +2,9 @@
 import type {NextConfig} from 'next';
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  experimental: {
+    transpilePackages: ["@react-three/fiber", "@react-three/drei", "three"],
+  },
   typescript: {
     ignoreBuildErrors: true,
   },
@@ -36,13 +38,30 @@ const nextConfig: NextConfig = {
   },
   allowedDevOrigins: ['**/*.cloudworkstations.dev'],
   webpack: (config) => {
-    const topReact = require.resolve("react");
-    const topReactDOM = require.resolve("react-dom");
-    
+    // Resolve to the single, top-level installs
+    const topReact        = require.resolve("react");
+    const topReactDOM     = require.resolve("react-dom");
+    const topReconciler   = require.resolve("react-reconciler");
+    const topScheduler    = require.resolve("scheduler");
+
     config.resolve.alias = {
       ...(config.resolve.alias || {}),
+
+      // Force all imports to the top-level copies
       react: topReact,
       "react-dom": topReactDOM,
+      "react-reconciler": topReconciler,
+      scheduler: topScheduler,
+
+      // Also collapse any nested copies inside R3F (what your stack shows)
+      "@react-three/fiber/node_modules/react": topReact,
+      "@react-three/fiber/node_modules/react-dom": topReactDOM,
+      "@react-three/fiber/node_modules/react-reconciler": topReconciler,
+      "@react-three/fiber/node_modules/scheduler": topScheduler,
+      "@react-three/drei/node_modules/react": topReact,
+      "@react-three/drei/node_modules/react-dom": topReactDOM,
+      "@react-three/drei/node_modules/react-reconciler": topReconciler,
+      "@react-three/drei/node_modules/scheduler": topScheduler,
     };
 
     return config;
