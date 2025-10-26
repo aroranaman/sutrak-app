@@ -49,7 +49,8 @@ export default function ScanningUI({ onComplete }: ScanningUIProps) {
             modelComplexity: 1,
             smoothLandmarks: true,
             minDetectionConfidence: 0.5,
-            minTrackingConfidence: 0.5
+            minTrackingConfidence: 0.5,
+            enableSegmentation: false // Ensure segmentation is off to get world landmarks
         });
 
         pose.onResults(onPoseResults);
@@ -61,8 +62,8 @@ export default function ScanningUI({ onComplete }: ScanningUIProps) {
             frontResultsRef.current = results;
             drawResults(results, frontImageRef.current);
 
-            if (!results.poseLandmarks) {
-                toast({ variant: 'destructive', title: "Scan Error", description: "No person detected in the front view. Please try again." });
+            if (!results.poseWorldLandmarks) {
+                toast({ variant: 'destructive', title: "Scan Error", description: "Could not detect body in the front view. Please ensure you are fully visible and try again." });
                 resetScan();
                 return;
             }
@@ -74,8 +75,8 @@ export default function ScanningUI({ onComplete }: ScanningUIProps) {
         } else if (processingState.current === 'processingSide') {
             sideResultsRef.current = results;
             drawResults(results, sideImageRef.current);
-            if (!results.poseLandmarks) {
-                toast({ variant: 'destructive', title: "Scan Error", description: "No person detected in the side view. Please try again." });
+            if (!results.poseWorldLandmarks) {
+                toast({ variant: 'destructive', title: "Scan Error", description: "Could not detect body in the side view. Please ensure you are fully visible and try again." });
                 resetScan();
                 return;
             }
@@ -204,96 +205,81 @@ export default function ScanningUI({ onComplete }: ScanningUIProps) {
 
     // --- Processing & Calculation ---
     const processImages = () => {
-        setProcessingMessage('Analyzing scan data...');
+        setProcessingMessage('Analyzing 3D geometry from front view...');
         processingState.current = 'processingFront';
         poseRef.current?.send({ image: frontImageRef.current });
     };
+    
+    const get3DDistance = (lm1: any, lm2: any) => {
+        if (!lm1 || !lm2) return 0;
+        return Math.sqrt(
+            Math.pow(lm1.x - lm2.x, 2) +
+            Math.pow(lm1.y - lm2.y, 2) +
+            Math.pow(lm1.z - lm2.z, 2)
+        );
+    };
 
-    const getCalibration = (landmarks: any[], canvasHeight: number, userHeightCm: number) => {
-        const POSE_LANDMARKS = (window as any).POSE_LANDMARKS;
-        if (!POSE_LANDMARKS) return 0;
-        const nose = landmarks[POSE_LANDMARKS.NOSE];
-        const leftAnkle = landmarks[POSE_LANDMARKS.LEFT_ANKLE];
-        const rightAnkle = landmarks[POSE_LANDMARKS.RIGHT_ANKLE];
-        
-        if (!nose || !leftAnkle || !rightAnkle) return 0;
-    
-        const avgAnkleY = (leftAnkle.y + rightAnkle.y) / 2;
-        const pixelHeight = (avgAnkleY - nose.y) * canvasHeight;
-        
-        if (pixelHeight <= 0) return 0;
-        
-        return userHeightCm / pixelHeight; // cmPerPixel
-    }
-    
     const calculateMeasurements = (front: any, side: any) => {
+        setProcessingMessage('Calculating measurements from 3D mesh data...');
         const POSE_LANDMARKS = (window as any).POSE_LANDMARKS;
         if (!POSE_LANDMARKS) {
             toast({ variant: 'destructive', title: 'Initialization Error', description: 'Could not load pose data. Please refresh.' });
             resetScan();
             return;
         }
-        const frontLms = front.poseLandmarks;
-        const sideLms = side.poseLandmarks;
-        const frontCanvasWidth = frontImageRef.current.width;
-        const frontCanvasHeight = frontImageRef.current.height;
-        const sideCanvasWidth = sideImageRef.current.width;
-        const sideCanvasHeight = sideImageRef.current.height;
+        const frontLms = front.poseWorldLandmarks;
+        const sideLms = side.poseWorldLandmarks;
 
-        function getPixelDistance(lm1: any, lm2: any) {
-            if (!lm1 || !lm2) return 0;
-            const dx = (lm1.x - lm2.x) * frontCanvasWidth;
-            const dy = (lm1.y - lm2.y) * frontCanvasHeight;
-            return Math.sqrt(dx * dx + dy * dy);
-        }
-
-        const cmPerPixelFront = getCalibration(frontLms, frontCanvasHeight, parseFloat(userHeight));
-        const cmPerPixelSide = getCalibration(sideLms, sideCanvasHeight, parseFloat(userHeight));
-
-        if (cmPerPixelFront === 0 || cmPerPixelSide === 0) {
-            toast({ variant: 'destructive', title: 'Calibration Error', description: 'Could not calibrate from images. Ensure your full body is visible.' });
+        // --- Calibration ---
+        // Get the vertical distance between shoulders and hips in the 3D world space
+        const world_f_L_Shoulder = frontLms[POSE_LANDMARKS.LEFT_SHOULDER];
+        const world_f_L_Hip = frontLms[POSE_LANDMARKS.LEFT_HIP];
+        const verticalDist3D = Math.abs(world_f_L_Shoulder.y - world_f_L_Hip.y);
+        
+        // This is a rough estimation of a real-world torso length in meters
+        const realWorldTorsoEstMeters = parseFloat(userHeight) / 170 * 0.5; // Assume 50cm torso for 170cm person
+        
+        if (verticalDist3D === 0) {
+            toast({ variant: 'destructive', title: 'Calibration Error', description: 'Could not calibrate from 3D data. Ensure your body is clearly visible.' });
             resetScan();
             return;
         }
 
+        const metersPerUnit = realWorldTorsoEstMeters / verticalDist3D;
+
+        // --- Measurements (in cm) ---
         const f_L_Shoulder = frontLms[POSE_LANDMARKS.LEFT_SHOULDER];
         const f_R_Shoulder = frontLms[POSE_LANDMARKS.RIGHT_SHOULDER];
+        const shoulderWidthCm = get3DDistance(f_L_Shoulder, f_R_Shoulder) * metersPerUnit * 100;
+
         const f_L_Hip = frontLms[POSE_LANDMARKS.LEFT_HIP];
         const f_R_Hip = frontLms[POSE_LANDMARKS.RIGHT_HIP];
-        const f_L_Elbow = frontLms[POSE_LANDMARKS.LEFT_ELBOW];
-        const f_L_Wrist = frontLms[POSE_LANDMARKS.LEFT_WRIST];
-        const f_L_Ankle = frontLms[POSE_LANDMARKS.LEFT_ANKLE];
-        
-        const s_L_Shoulder = sideLms[POSE_LANDMARKS.LEFT_SHOULDER];
-        const s_R_Shoulder = sideLms[POSE_LANDMARKS.RIGHT_SHOULDER];
+        const hipWidthCm = get3DDistance(f_L_Hip, f_R_Hip) * metersPerUnit * 100;
+
         const s_L_Hip = sideLms[POSE_LANDMARKS.LEFT_HIP];
         const s_R_Hip = sideLms[POSE_LANDMARKS.RIGHT_HIP];
+        const hipDepthCm = get3DDistance(s_L_Hip, s_R_Hip) * metersPerUnit * 100;
 
-        const shoulderWidthPx = Math.abs(f_L_Shoulder.x - f_R_Shoulder.x) * frontCanvasWidth;
-        const shoulderWidthCm = shoulderWidthPx * cmPerPixelFront;
-        const shoulderToElbowPx = getPixelDistance(f_L_Shoulder, f_L_Elbow);
-        const elbowToWristPx = getPixelDistance(f_L_Elbow, f_L_Wrist);
-        const sleeveLengthCm = (shoulderToElbowPx + elbowToWristPx) * cmPerPixelFront;
-        const shoulderMidY = (f_L_Shoulder.y + f_R_Shoulder.y) / 2;
-        const hipMidY = (f_L_Hip.y + f_R_Hip.y) / 2;
-        const torsoLengthPx = Math.abs(hipMidY - shoulderMidY) * frontCanvasHeight;
-        const torsoLengthCm = torsoLengthPx * cmPerPixelFront;
-        const inseamPx = Math.abs(f_L_Ankle.y - f_L_Hip.y) * frontCanvasHeight;
-        const inseamCm = inseamPx * cmPerPixelFront * 0.9; // Correction factor
+        const s_L_Shoulder = sideLms[POSE_LANDMARKS.LEFT_SHOULDER];
+        const s_R_Shoulder = sideLms[POSE_LANDMARKS.RIGHT_SHOULDER];
+        const shoulderDepthCm = get3DDistance(s_L_Shoulder, s_R_Shoulder) * metersPerUnit * 100;
 
-        const shoulderDepthPx = Math.abs(s_L_Shoulder.x - s_R_Shoulder.x) * sideCanvasWidth;
-        const shoulderDepthCm = shoulderDepthPx * cmPerPixelSide;
-        const bustA = shoulderWidthCm / 2;
-        const bustB = shoulderDepthCm / 2;
-        const upperTorsoCircumferenceCm = 2 * Math.PI * Math.sqrt((Math.pow(bustA, 2) + Math.pow(bustB, 2)) / 2);
-
-        const hipWidthPx = Math.abs(f_L_Hip.x - f_R_Hip.x) * frontCanvasWidth;
-        const hipWidthCm = hipWidthPx * cmPerPixelFront;
-        const hipDepthPx = Math.abs(s_L_Hip.x - s_R_Hip.x) * sideCanvasWidth;
-        const hipDepthCm = hipDepthPx * cmPerPixelSide;
+        // Estimate circumferences using Ramanujan's approximation for an ellipse
         const hipA = hipWidthCm / 2;
         const hipB = hipDepthCm / 2;
-        const hipCircumferenceCm = 2 * Math.PI * Math.sqrt((Math.pow(hipA, 2) + Math.pow(hipB, 2)) / 2);
+        const hipCircumferenceCm = Math.PI * (3 * (hipA + hipB) - Math.sqrt((3 * hipA + hipB) * (hipA + 3 * hipB)));
+        
+        const bustA = shoulderWidthCm / 2;
+        const bustB = shoulderDepthCm / 2;
+        const upperTorsoCircumferenceCm = Math.PI * (3 * (bustA + bustB) - Math.sqrt((3 * bustA + bustB) * (bustA + 3 * bustB)));
+
+        const f_L_Ankle = frontLms[POSE_LANDMARKS.LEFT_ANKLE];
+        const inseamCm = get3DDistance(f_L_Hip, f_L_Ankle) * metersPerUnit * 100;
+        
+        const f_L_Wrist = frontLms[POSE_LANDMARKS.LEFT_WRIST];
+        const sleeveLengthCm = get3DDistance(f_L_Shoulder, f_L_Wrist) * metersPerUnit * 100;
+        
+        const torsoLengthCm = get3DDistance(f_L_Shoulder, f_L_Hip) * metersPerUnit * 100;
 
         onComplete({
             shoulderWidthCm,

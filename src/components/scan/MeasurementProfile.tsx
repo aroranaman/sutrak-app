@@ -97,9 +97,9 @@ export default function MeasurementProfile({ onNewScan, measurements }: Measurem
       <CardHeader>
         <div className="flex justify-between items-start">
           <div>
-            <CardTitle className="text-3xl font-headline">Your Measurements</CardTitle>
+            <CardTitle className="text-3xl font-headline">Your 3D Body Profile</CardTitle>
             <CardDescription>
-              Our AI has generated your unique body profile. Save it to start trying on clothes.
+              Our AI has generated your unique body profile from the 3D scan data.
             </CardDescription>
           </div>
           <CheckCircle className="size-10 text-green-500" />
@@ -146,3 +146,5 @@ export default function MeasurementProfile({ onNewScan, measurements }: Measurem
     </Card>
   );
 }
+
+    
