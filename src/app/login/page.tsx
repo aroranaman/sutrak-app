@@ -42,11 +42,21 @@ export default function LoginPage() {
       });
     } catch (error: any) {
       console.error('Error sending OTP:', error);
-      toast({
-        variant: 'destructive',
-        title: 'Error Sending OTP',
-        description: error.message || 'Failed to send OTP. Please check your phone number and try again.',
-      });
+       const message = String(error?.message || 'Failed to send OTP.');
+      if (message.toLowerCase().includes('offline')) {
+          toast({
+            variant: 'destructive',
+            title: 'Network Error',
+            description: 'Could not connect to the server. Please check your connection and try again.',
+            duration: 9000,
+          });
+      } else {
+         toast({
+            variant: 'destructive',
+            title: 'Error Sending OTP',
+            description: message,
+          });
+      }
       // Reset reCAPTCHA on error
       resetRecaptcha();
     } finally {
@@ -69,11 +79,21 @@ export default function LoginPage() {
       router.push(redirectUrl);
     } catch (error: any) {
       console.error('Error verifying OTP:', error);
-      toast({
-        variant: 'destructive',
-        title: 'Error Verifying OTP',
-        description: error.message || 'Invalid OTP. Please try again.',
-      });
+      const message = String(error?.message || 'Invalid OTP. Please try again.');
+       if (message.toLowerCase().includes('offline')) {
+           toast({
+            variant: 'destructive',
+            title: 'Network Error',
+            description: 'Could not verify OTP. The client appears to be offline.',
+             duration: 9000,
+          });
+       } else {
+           toast({
+            variant: 'destructive',
+            title: 'Error Verifying OTP',
+            description: message,
+          });
+       }
     } finally {
       setLoading(false);
     }
