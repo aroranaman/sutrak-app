@@ -168,10 +168,14 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
   
   // Dedicated effect to handle admin credits
   useEffect(() => {
+    // This effect runs whenever user data is loaded or changes.
+    // It guarantees the admin account credit balance is corrected if needed.
     if (userData && firebaseUser) {
       const isAdmin = firebaseUser.phoneNumber === '+918979292639';
       const currentCredits = userData.credits ?? 0;
+      
       if (isAdmin && currentCredits < 10000) {
+        // Direct call to update the document.
         updateUserDocument({ credits: 10000 });
       }
     }
