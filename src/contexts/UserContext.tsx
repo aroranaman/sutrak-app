@@ -147,17 +147,17 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
       if (userStatus === 'loading') {
         setLoading(true);
       } else if (userStatus === 'success' && userData) {
-          const isAdmin = firebaseUser.phoneNumber === '+918979292639';
-          const currentCredits = userData.credits ?? 0;
-          
-          if (isAdmin && currentCredits < 10000) {
-             updateUserDocument({ credits: 10000 });
-             setCredits(10000);
-          } else {
-            setCredits(currentCredits);
-          }
-          setProfiles(userData.profiles ?? []);
-          setLoading(false);
+        const currentCredits = userData.credits ?? 0;
+        const isAdmin = firebaseUser.phoneNumber === '+918979292639';
+        
+        if (isAdmin && currentCredits < 10000) {
+           updateUserDocument({ credits: 10000 });
+           setCredits(10000);
+        } else {
+          setCredits(currentCredits);
+        }
+        setProfiles(userData.profiles ?? []);
+        setLoading(false);
 
       } else if (userStatus === 'error' || (userStatus === 'success' && !userData)) {
         // This case handles a new user where the doc doesn't exist yet.
