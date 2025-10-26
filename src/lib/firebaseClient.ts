@@ -6,17 +6,13 @@ import { firebaseConfig } from "@/firebase/config";
 
 // Initialize Firebase
 let app: FirebaseApp;
-let auth: Auth;
-let firestore: Firestore;
-
-if (getApps().length) {
-    app = getApp();
+if (!getApps().length) {
+  app = initializeApp(firebaseConfig);
 } else {
-    app = initializeApp(firebaseConfig);
+  app = getApp();
 }
 
-auth = getAuth(app);
-firestore = getFirestore(app);
-
+const auth: Auth = getAuth(app);
+const firestore: Firestore = getFirestore(app);
 
 export { app, auth, firestore };
