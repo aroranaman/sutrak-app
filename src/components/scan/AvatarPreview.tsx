@@ -3,13 +3,25 @@
 import * as React from "react";
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
-import { Loader2 } from "lucide-react";
+
+export type Measurements = {
+  bust: number;
+  hip: number;
+  shoulderWidth: number;
+  sleeveLength: number;
+  torsoLength: number;
+  inseam: number;
+};
+
+function clamp(n: number, min: number, max: number) {
+  return Math.max(min, Math.min(max, n));
+}
 
 // Guards against NaN, undefined, or zero, which would crash the 3D renderer.
 function safeMetersFromCircumference(cm?: number) {
-  const c = Number(cm ?? 0);
-  if (!isFinite(c) || c <= 0) return 0.01; // Default to a small radius to prevent errors
-  return (c / (2 * Math.PI)) / 100;
+    const c = Number(cm ?? 0);
+    if (!isFinite(c) || c <= 0) return 0.01; // Default to a small radius to prevent errors
+    return (c / (2 * Math.PI)) / 100;
 }
 
 function safeMetersFromLength(cm?: number) {
@@ -18,10 +30,7 @@ function safeMetersFromLength(cm?: number) {
     return l / 100;
 }
 
-
-type M = { bust: number; hip: number; shoulderWidth: number; sleeveLength: number; torsoLength: number; inseam: number; };
-
-function Body({ measurements }: { measurements: M }) {
+function Body({ measurements }: { measurements: Measurements }) {
   // Use safe calculation functions to derive model dimensions
   const bustRadius = safeMetersFromCircumference(measurements.bust);
   const hipRadius = safeMetersFromCircumference(measurements.hip);
@@ -79,7 +88,8 @@ function Body({ measurements }: { measurements: M }) {
   );
 }
 
-export default function AvatarPreview({ measurements }: { measurements: M | null }) {
+
+export default function AvatarPreview({ measurements }: { measurements: Measurements | null }) {
   if (!measurements) {
       return (
           <div className="h-96 w-full rounded-lg border bg-secondary flex items-center justify-center">

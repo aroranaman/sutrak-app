@@ -1,7 +1,6 @@
-'use client';
+"use client";
 
-import { useState, Suspense } from 'react';
-import dynamic from 'next/dynamic';
+import { useState } from 'react';
 import { useUser } from '@/contexts/UserContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -17,18 +16,16 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { saveMeasurementClient } from '@/actions/saveMeasurementClient';
-import { Skeleton } from '../ui/skeleton';
 import AvatarCanvasShell from './AvatarCanvasShell';
-
+import type { Measurements } from './AvatarPreview';
 
 interface MeasurementProfileProps {
   onNewScan: () => void;
-  measurements: any;
+  measurements: Partial<Measurements>;
 }
 
 const measurementInfo: Record<string, string> = {
   bust: "The measurement around the fullest part of your chest.",
-  waist: "The measurement around the narrowest part of your torso.",
   hip: "The measurement around the widest part of your hips.",
   shoulderWidth: "The distance from the end of one shoulder to the other.",
   sleeveLength: "The length from your shoulder to your wrist.",
@@ -36,13 +33,28 @@ const measurementInfo: Record<string, string> = {
   inseam: "The length of your inner leg, from your crotch to your ankle.",
 };
 
-export default function MeasurementProfile({ onNewScan, measurements }: MeasurementProfileProps) {
+function normalize(m: Partial<Measurements>): Measurements {
+  // Defaults keep avatar safe even if some fields are missing
+  return {
+    bust: Number(m.bust ?? 95.5),
+    hip: Number(m.hip ?? 94.7),
+    shoulderWidth: Number(m.shoulderWidth ?? 44.5),
+    sleeveLength: Number(m.sleeveLength ?? 56),
+    torsoLength: Number(m.torsoLength ?? 60),
+    inseam: Number(m.inseam ?? 58),
+  };
+}
+
+export default function MeasurementProfile({ onNewScan, measurements: measured }: MeasurementProfileProps) {
   const { addProfile } = useUser();
   const { user: firebaseUser } = useAuth();
   const router = useRouter();
   const [profileName, setProfileName] = useState('My Profile');
   const [isSaved, setIsSaved] = useState(false);
   const { toast } = useToast();
+  const [saving, setSaving] = useState(false);
+  
+  const measurements = normalize(measured);
 
   const handleSaveProfile = async () => {
     if (!firebaseUser) {
@@ -63,19 +75,10 @@ export default function MeasurementProfile({ onNewScan, measurements }: Measurem
       return;
     }
     
-    if (!measurements) {
-       toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: 'No measurements to save.',
-      });
-      return;
-    }
-
+    setSaving(true);
     try {
       await saveMeasurementClient(firebaseUser, profileName, measurements);
       
-      // Also update the local context state
       addProfile({
           name: profileName,
           measurements: measurements
@@ -101,6 +104,8 @@ export default function MeasurementProfile({ onNewScan, measurements }: Measurem
         });
         console.error("Error saving profile:", e);
       }
+    } finally {
+      setSaving(false);
     }
   };
   
@@ -119,11 +124,8 @@ export default function MeasurementProfile({ onNewScan, measurements }: Measurem
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="grid md:grid-cols-2 gap-8 items-center">
-          <Suspense fallback={<Skeleton className="h-96 w-full rounded-lg" />}>
-            <AvatarCanvasShell measurements={measurements} />
-          </Suspense>
+          <AvatarCanvasShell measurements={measurements} />
           <TooltipProvider>
-            {measurements ? (
             <div className="grid grid-cols-1 gap-4 text-lg">
               {Object.entries(measurements).map(([key, value]: [string, any]) => (
                 <div key={key} className="flex justify-between items-center p-3 bg-secondary rounded-lg">
@@ -144,9 +146,6 @@ export default function MeasurementProfile({ onNewScan, measurements }: Measurem
                 </div>
               ))}
             </div>
-            ) : (
-              <p>No measurement data available. Please complete a scan.</p>
-            )}
             </TooltipProvider>
         </div>
         
@@ -158,7 +157,7 @@ export default function MeasurementProfile({ onNewScan, measurements }: Measurem
             onChange={(e) => setProfileName(e.target.value)}
             placeholder="e.g., My Profile, John's Profile"
             className="mt-1"
-            disabled={isSaved}
+            disabled={isSaved || saving}
           />
         </div>
       </CardContent>
@@ -167,8 +166,8 @@ export default function MeasurementProfile({ onNewScan, measurements }: Measurem
           <Scan className="mr-2 size-4" />
           Start New Scan
         </Button>
-        <Button onClick={handleSaveProfile} disabled={isSaved || !measurements} className="bg-accent text-accent-foreground hover:bg-accent/90">
-          <Save className="mr-2 size-4" />
+        <Button onClick={handleSaveProfile} disabled={isSaved || saving} className="bg-accent text-accent-foreground hover:bg-accent/90">
+          {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 size-4" />}
           {isSaved ? 'Profile Saved' : 'Save Profile (100 Credits)'}
         </Button>
       </CardFooter>
