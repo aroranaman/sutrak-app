@@ -5,18 +5,32 @@ import { Canvas } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
 import { Loader2 } from "lucide-react";
 
+// Guards against NaN, undefined, or zero, which would crash the 3D renderer.
+function safeMetersFromCircumference(cm?: number) {
+  const c = Number(cm ?? 0);
+  if (!isFinite(c) || c <= 0) return 0.01; // Default to a small radius to prevent errors
+  return (c / (2 * Math.PI)) / 100;
+}
+
+function safeMetersFromLength(cm?: number) {
+    const l = Number(cm ?? 0);
+    if(!isFinite(l) || l <= 0) return 0.01;
+    return l / 100;
+}
+
+
 type M = { bust: number; hip: number; shoulderWidth: number; sleeveLength: number; torsoLength: number; inseam: number; };
 
 function Body({ measurements }: { measurements: M }) {
-  // crude proportional scaling from circumferences/lengths
-  // Convert cm to scene units (e.g., divide by 100 to get meters)
-  const scale = 1 / 100;
-  const bustRadius = (measurements.bust * scale) / (2 * Math.PI);
-  const hipRadius = (measurements.hip * scale) / (2 * Math.PI);
-  const shoulderWidthValue = measurements.shoulderWidth * scale;
-  const torsoLen = measurements.torsoLength * scale;
-  const sleeveLen = measurements.sleeveLength * scale;
-  const inseamLen = measurements.inseam * scale;
+  // Use safe calculation functions to derive model dimensions
+  const bustRadius = safeMetersFromCircumference(measurements.bust);
+  const hipRadius = safeMetersFromCircumference(measurements.hip);
+  const shoulderWidthValue = safeMetersFromLength(measurements.shoulderWidth);
+  const torsoLen = safeMetersFromLength(measurements.torsoLength);
+  const sleeveLen = safeMetersFromLength(measurements.sleeveLength);
+  const inseamLen = safeMetersFromLength(measurements.inseam);
+  
+  // Derive secondary measurements from the safe primary ones
   const legRadius = hipRadius * 0.4;
   const armRadius = bustRadius * 0.2;
 
