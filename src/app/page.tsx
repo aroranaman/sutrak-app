@@ -34,7 +34,7 @@ export default function Home() {
 
   return (
     <div className="flex flex-col min-h-[100dvh]">
-      <section className="relative w-full py-12 md:py-24 lg:py-32 xl:py-48">
+      <section className="relative w-full pt-24 pb-12 md:py-24 lg:py-32 xl:py-48">
         {heroImage && (
           <Image
             src={heroImage.imageUrl}
@@ -73,11 +73,11 @@ export default function Home() {
               How It Works
             </div>
             <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl font-headline">A Revolution in Three Steps</h2>
-            <p className="max-w-[900px] text-foreground/80 md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
+            <p className="max-w-[900px] text-foreground/80 text-base/relaxed md:text-xl/relaxed">
               From your living room to our design studio, getting the perfect fit has never been easier.
             </p>
           </div>
-          <div className="mx-auto grid max-w-5xl items-start gap-8 sm:grid-cols-2 md:gap-12 lg:max-w-none lg:grid-cols-3">
+          <div className="mx-auto grid max-w-5xl items-start gap-8 sm:grid-cols-2 lg:grid-cols-3">
             {featureCards.map((feature, index) => (
               <Card key={index} className="bg-card border-none shadow-xl transform hover:-translate-y-2 transition-transform duration-300">
                 <CardContent className="p-6">
@@ -99,7 +99,7 @@ export default function Home() {
         <div className="container px-4 md:px-6">
           <div className="flex flex-col items-center justify-center space-y-4 text-center mb-12">
             <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl font-headline">Curated For You</h2>
-            <p className="max-w-[900px] text-foreground/80 md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
+            <p className="max-w-[900px] text-foreground/80 text-base/relaxed md:text-xl/relaxed">
               Discover unique designs from premium brands, ready to be made just for you.
             </p>
           </div>
@@ -124,7 +124,7 @@ export default function Home() {
             <h2 className="text-3xl font-bold tracking-tighter md:text-4xl/tight font-headline">
               Join the Fashion Revolution
             </h2>
-            <p className="mx-auto max-w-[600px] text-foreground/80 md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
+            <p className="mx-auto max-w-[600px] text-foreground/80 text-base/relaxed md:text-xl/relaxed">
               Sign up today and receive <span className="text-accent font-bold">500 free credits</span> to start your personalized shopping journey.
             </p>
           </div>

@@ -104,9 +104,9 @@ export default function TryOnInterface({ garment }: TryOnInterfaceProps) {
   const displayImage = generatedImage ?? userModelImage?.imageUrl ?? '/placeholder.svg';
 
   return (
-    <div className="grid md:grid-cols-2 gap-8 lg:gap-12 items-start">
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12 items-start">
       <Card className="shadow-lg sticky top-24">
-        <CardContent className="p-4">
+        <CardContent className="p-2 md:p-4">
           <div className="aspect-[3/4] relative rounded-lg overflow-hidden bg-secondary">
             <Image
               src={displayImage}
@@ -116,7 +116,7 @@ export default function TryOnInterface({ garment }: TryOnInterfaceProps) {
               data-ai-hint={generatedImage ? "woman dress" : "person standing"}
             />
             {loading && (
-              <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center text-white">
+              <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center text-white p-4 text-center">
                 <Loader2 className="size-12 animate-spin" />
                 <p className="mt-4 text-lg font-semibold">Generating your look...</p>
               </div>
@@ -125,15 +125,15 @@ export default function TryOnInterface({ garment }: TryOnInterfaceProps) {
         </CardContent>
       </Card>
 
-      <div className="space-y-8">
+      <div className="space-y-6">
         <div>
           <p className="text-sm font-medium text-muted-foreground">{garment.brand}</p>
-          <h1 className="text-4xl font-extrabold tracking-tight font-headline">{garment.name}</h1>
+          <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight font-headline">{garment.name}</h1>
           <p className="mt-2 text-2xl font-semibold text-primary">₹{garment.price.toLocaleString()}</p>
         </div>
 
         <div className="space-y-4">
-          <h3 className="text-xl font-semibold font-headline">1. Choose Fabric</h3>
+          <h3 className="text-lg md:text-xl font-semibold font-headline">1. Choose Fabric</h3>
           <div className="flex flex-wrap gap-2">
             {compatibleFabrics.map((fabric) => (
               <Button
@@ -148,11 +148,11 @@ export default function TryOnInterface({ garment }: TryOnInterfaceProps) {
         </div>
         
         <div className="space-y-4">
-          <h3 className="text-xl font-semibold font-headline">2. Select Your Fit</h3>
-           <RadioGroup value={selectedFit} onValueChange={(v: Fit) => setSelectedFit(v)} className="flex gap-4">
+          <h3 className="text-lg md:text-xl font-semibold font-headline">2. Select Your Fit</h3>
+           <RadioGroup value={selectedFit} onValueChange={(v: Fit) => setSelectedFit(v)} className="flex flex-col sm:flex-row gap-2">
             {(['slim', 'truefit', 'loose'] as Fit[]).map(fit => (
               <Label key={fit} htmlFor={`fit-${fit}`} className="flex-1 cursor-pointer">
-                <Card className={`p-4 transition-all ${selectedFit === fit ? 'border-primary ring-2 ring-primary' : 'hover:border-primary/50'}`}>
+                <Card className={`p-3 md:p-4 transition-all ${selectedFit === fit ? 'border-primary ring-2 ring-primary' : 'hover:border-primary/50'}`}>
                   <div className="flex items-center gap-4">
                     <RadioGroupItem value={fit} id={`fit-${fit}`} />
                     <span className="font-medium capitalize">{fit === 'truefit' ? 'True Fit' : fit}</span>
@@ -164,7 +164,7 @@ export default function TryOnInterface({ garment }: TryOnInterfaceProps) {
         </div>
         
         <div className="space-y-4">
-          <h3 className="text-xl font-semibold font-headline">3. Choose View</h3>
+          <h3 className="text-lg md:text-xl font-semibold font-headline">3. Choose View</h3>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
              {(['front', 'side', 'back', '3/4'] as View[]).map(view => (
                  <Button key={view} variant={selectedView === view ? 'secondary' : 'outline'} onClick={()=> setSelectedView(view)} className="capitalize">{view}</Button>

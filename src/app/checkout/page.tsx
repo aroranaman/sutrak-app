@@ -26,16 +26,16 @@ export default function CheckoutPage() {
   }
 
   return (
-    <div className="container py-12">
-      <div className="text-center mb-12">
-        <h1 className="text-4xl font-extrabold tracking-tight lg:text-5xl font-headline">
+    <div className="container py-8 md:py-12">
+      <div className="text-center mb-8 md:mb-12">
+        <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight lg:text-5xl font-headline">
           Checkout
         </h1>
-        <p className="mt-4 text-lg text-foreground/80">
+        <p className="mt-2 md:mt-4 text-base md:text-lg text-foreground/80">
           Please review your order and complete your purchase.
         </p>
       </div>
-      <div className="grid md:grid-cols-2 gap-12 max-w-5xl mx-auto">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12 max-w-5xl mx-auto">
         <Card className="shadow-lg">
           <CardHeader>
             <CardTitle>Order Summary</CardTitle>

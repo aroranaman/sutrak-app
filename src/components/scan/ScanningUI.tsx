@@ -307,7 +307,7 @@ export default function ScanningUI({ onComplete }: ScanningUIProps) {
 
     return (
         <Card className="w-full max-w-4xl mx-auto shadow-2xl overflow-hidden">
-            <CardContent className="p-0 md:grid md:grid-cols-2">
+            <CardContent className="p-0 flex flex-col md:grid md:grid-cols-2">
                 <div className="relative aspect-[9/16] md:aspect-auto bg-gray-900 flex items-center justify-center">
                     <video ref={videoRef} className="w-full h-full object-cover transform scale-x-[-1]" autoPlay playsInline muted />
                     <canvas ref={canvasRef} className="absolute inset-0 w-full h-full object-cover" />
