@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, Suspense } from 'react';
+import dynamic from 'next/dynamic';
 import { useUser } from '@/contexts/UserContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -16,7 +17,17 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { saveMeasurementClient } from '@/actions/saveMeasurementClient';
-import AvatarPreview from './AvatarPreview';
+import { Skeleton } from '../ui/skeleton';
+
+const AvatarPreview = dynamic(() => import('./AvatarPreview'), {
+  ssr: false,
+  loading: () => (
+    <div className="h-96 w-full rounded-lg border bg-secondary flex items-center justify-center">
+      <Loader2 className="size-8 animate-spin text-muted-foreground" />
+    </div>
+  ),
+});
+
 
 interface MeasurementProfileProps {
   onNewScan: () => void;
@@ -116,13 +127,7 @@ export default function MeasurementProfile({ onNewScan, measurements }: Measurem
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="grid md:grid-cols-2 gap-8 items-center">
-            <Suspense fallback={
-              <div className="h-96 w-full rounded-lg border bg-secondary flex items-center justify-center">
-                  <Loader2 className="size-8 animate-spin text-muted-foreground" />
-              </div>
-            }>
-              <AvatarPreview measurements={measurements} />
-            </Suspense>
+            <AvatarPreview measurements={measurements} />
             <TooltipProvider>
             {measurements ? (
             <div className="grid grid-cols-1 gap-4 text-lg">
