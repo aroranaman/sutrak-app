@@ -173,11 +173,11 @@ export default function TryOnInterface({ garment }: TryOnInterfaceProps) {
         </div>
 
         <div className="space-y-4 pt-4">
-           <Button size="lg" className="w-full bg-primary text-primary-foreground hover:bg-primary/90" onClick={handleGenerate} disabled={loading}>
+           <Button size="lg" className="w-full bg-accent text-accent-foreground hover:bg-accent/90" onClick={handleGenerate} disabled={loading}>
             <Sparkles className="mr-2 size-5" />
             {loading ? 'Generating...' : 'Generate Try-On'}
           </Button>
-          <Button size="lg" variant="outline" className="w-full" onClick={handleAddToCart}>
+          <Button size="lg" variant="default" className="w-full" onClick={handleAddToCart}>
             <ShoppingCart className="mr-2 size-5" />
             Add to Cart
           </Button>
@@ -186,3 +186,5 @@ export default function TryOnInterface({ garment }: TryOnInterfaceProps) {
     </div>
   );
 }
+
+    

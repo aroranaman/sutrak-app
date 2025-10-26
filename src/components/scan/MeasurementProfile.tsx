@@ -1,13 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useUser } from '@/contexts/UserContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { CheckCircle, Save, Scan, HelpCircle } from 'lucide-react';
-import ScanRetrySuggestion from './ScanRetrySuggestion';
 import { useAuth } from '@/firebase';
 import { useRouter } from 'next/navigation';
 import {
@@ -34,19 +33,12 @@ const measurementInfo: Record<string, string> = {
 
 
 export default function MeasurementProfile({ onNewScan, measurements }: MeasurementProfileProps) {
-  const { credits, addProfile } = useUser();
+  const { addProfile } = useUser();
   const { user: firebaseUser } = useAuth();
   const router = useRouter();
   const [profileName, setProfileName] = useState('My Profile');
   const [isSaved, setIsSaved] = useState(false);
   const { toast } = useToast();
-  
-  const [showRetrySuggestion, setShowRetrySuggestion] = useState(false);
-
-  useEffect(() => {
-    // Run this only on the client-side to avoid hydration mismatch
-    setShowRetrySuggestion(Math.random() < 0.3);
-  }, []);
 
   const handleSaveProfile = () => {
     if (!firebaseUser) {
@@ -90,18 +82,10 @@ export default function MeasurementProfile({ onNewScan, measurements }: Measurem
         description: `"${profileName}" has been added. 100 credits were used.`,
       });
     } else {
-      toast({
-        variant: 'destructive',
-        title: 'Insufficient Credits',
-        description: 'You do not have enough credits to save a new profile.',
-      });
+      // The useUser hook will show the "insufficient credits" toast
     }
   };
-
-  if (showRetrySuggestion) {
-    return <ScanRetrySuggestion onRetry={onNewScan} onProceed={() => setShowRetrySuggestion(false)} />;
-  }
-
+  
   const displayMeasurements = {
     bustCircumference: measurements?.upperTorsoCircumferenceCm,
     hipCircumference: measurements?.hipCircumferenceCm,
@@ -140,7 +124,7 @@ export default function MeasurementProfile({ onNewScan, measurements }: Measurem
                             <HelpCircle className="size-4 text-muted-foreground" />
                         </TooltipTrigger>
                         <TooltipContent>
-                            <p>{measurementInfo[key]}</p>
+                            <p>{measurementInfo[key] || 'No information available.'}</p>
                         </TooltipContent>
                     </Tooltip>
                 </div>
@@ -172,9 +156,11 @@ export default function MeasurementProfile({ onNewScan, measurements }: Measurem
         </Button>
         <Button onClick={handleSaveProfile} disabled={isSaved || !measurements} className="bg-accent text-accent-foreground hover:bg-accent/90">
           <Save className="mr-2 size-4" />
-          {isSaved ? 'Profile Saved' : `Save Profile (${firebaseUser ? '100 Credits' : 'Sign in to Save'})`}
+          {isSaved ? 'Profile Saved' : 'Save Profile (100 Credits)'}
         </Button>
       </CardFooter>
     </Card>
   );
 }
+
+    

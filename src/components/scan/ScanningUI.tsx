@@ -232,51 +232,42 @@ export default function ScanningUI({ onComplete }: ScanningUIProps) {
 
         // --- New Calibration Logic ---
         const userHeightCm = parseFloat(userHeight);
+        const f_L_Shoulder = frontLms[POSE_LANDMARKS.LEFT_SHOULDER];
+        const f_R_Shoulder = frontLms[POSE_LANDMARKS.RIGHT_SHOULDER];
+        const f_L_Hip = frontLms[POSE_LANDMARKS.LEFT_HIP];
+        const f_R_Hip = frontLms[POSE_LANDMARKS.RIGHT_HIP];
+
+        const modelTorsoHeight = Math.abs(((f_L_Shoulder.y + f_R_Shoulder.y) / 2) - ((f_L_Hip.y + f_R_Hip.y) / 2));
         
-        // Use full body height from landmarks to calibrate
-        const nose = frontLms[POSE_LANDMARKS.NOSE];
-        const leftHeel = frontLms[POSE_LANDMARKS.LEFT_HEEL];
-        const rightHeel = frontLms[POSE_LANDMARKS.RIGHT_HEEL];
-        const highestPoint = nose; // Use nose as a proxy for the top of the head
-        const lowestPointY = (leftHeel.y + rightHeel.y) / 2;
+        // A typical torso to height ratio is ~0.3. We use this to estimate the torso height in cm.
+        const estimatedTorsoHeightCm = userHeightCm * 0.3; 
         
-        const modelHeightInUnits = Math.abs(highestPoint.y - lowestPointY);
-        
-        if (modelHeightInUnits === 0) {
-            toast({ variant: 'destructive', title: 'Calibration Error', description: 'Could not calculate model height. Ensure your body is clearly visible.' });
+        if (modelTorsoHeight === 0) {
+            toast({ variant: 'destructive', title: 'Calibration Error', description: 'Could not calculate model height. Ensure your torso is clearly visible.' });
             resetScan();
             return;
         }
         
-        // This factor converts MediaPipe's arbitrary units to centimeters
-        const cmPerUnit = userHeightCm / modelHeightInUnits;
+        // This factor converts MediaPipe's arbitrary units to centimeters based on torso height
+        const cmPerUnit = estimatedTorsoHeightCm / modelTorsoHeight;
 
         // --- Measurements (in cm) ---
-        const f_L_Shoulder = frontLms[POSE_LANDMARKS.LEFT_SHOULDER];
-        const f_R_Shoulder = frontLms[POSE_LANDMARKS.RIGHT_SHOULDER];
         const shoulderWidthCm = get3DDistance(f_L_Shoulder, f_R_Shoulder) * cmPerUnit;
 
-        const f_L_Hip = frontLms[POSE_LANDMARKS.LEFT_HIP];
-        const f_R_Hip = frontLms[POSE_LANDMARKS.RIGHT_HIP];
         const hipWidthCm = get3DDistance(f_L_Hip, f_R_Hip) * cmPerUnit;
 
         const s_L_Hip = sideLms[POSE_LANDMARKS.LEFT_HIP];
         const s_R_Hip = sideLms[POSE_LANDMARKS.RIGHT_HIP];
-        const hipDepthCm = get3DDistance(s_L_Hip, s_R_Hip) * cmPerUnit;
+        const hipDepthCm = get3DDistance(s_L_Hip, s_R_Hip) * cmPerUnit * 0.8; // Heuristic adjustment for side view depth
 
         const s_L_Shoulder = sideLms[POSE_LANDMARKS.LEFT_SHOULDER];
         const s_R_Shoulder = sideLms[POSE_LANDMARKS.RIGHT_SHOULDER];
-        const shoulderDepthCm = get3DDistance(s_L_Shoulder, s_R_Shoulder) * cmPerUnit;
+        const shoulderDepthCm = get3DDistance(s_L_Shoulder, s_R_Shoulder) * cmPerUnit * 0.7; // Heuristic adjustment
 
         // Estimate circumferences using Ramanujan's approximation for an ellipse
-        const hipA = hipWidthCm / 2;
-        const hipB = hipDepthCm / 2;
-        const hipCircumferenceCm = Math.PI * (3 * (hipA + hipB) - Math.sqrt((3 * hipA + hipB) * (hipA + 3 * hipB)));
+        const hipCircumferenceCm = Math.PI * (3 * (hipWidthCm / 2 + hipDepthCm / 2) - Math.sqrt((3 * hipWidthCm / 2 + hipDepthCm / 2) * (hipWidthCm / 2 + 3 * hipDepthCm / 2)));
         
-        const bustA = shoulderWidthCm / 2;
-        const bustB = shoulderDepthCm / 2;
-        // The bust is anatomically wider than just the shoulder depth, add a heuristic multiplier
-        const upperTorsoCircumferenceCm = Math.PI * (3 * (bustA + bustB) - Math.sqrt((3 * bustA + bustB) * (bustA + 3 * bustB))) * 1.1;
+        const upperTorsoCircumferenceCm = Math.PI * (3 * (shoulderWidthCm / 2 + shoulderDepthCm / 2) - Math.sqrt((3 * shoulderWidthCm / 2 + shoulderDepthCm / 2) * (shoulderWidthCm / 2 + 3 * shoulderDepthCm / 2)));
 
         const f_L_Ankle = frontLms[POSE_LANDMARKS.LEFT_ANKLE];
         const inseamCm = get3DDistance(f_L_Hip, f_L_Ankle) * cmPerUnit;
@@ -371,3 +362,5 @@ export default function ScanningUI({ onComplete }: ScanningUIProps) {
         </Card>
     );
 }
+
+    
