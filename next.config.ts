@@ -2,9 +2,7 @@
 import type {NextConfig} from 'next';
 
 const nextConfig: NextConfig = {
-  experimental: {
-    transpilePackages: ["@react-three/fiber", "@react-three/drei", "three"],
-  },
+  transpilePackages: ["@react-three/fiber", "@react-three/drei", "three"],
   typescript: {
     ignoreBuildErrors: true,
   },
