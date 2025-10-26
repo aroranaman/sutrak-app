@@ -1,21 +1,17 @@
+
 'use client';
 
 import {
-  getAuth,
   onAuthStateChanged,
   signOut as firebaseSignOut,
   type User,
 } from 'firebase/auth';
-import { useCallback, useEffect, useState, useContext } from 'react';
-
-import { useFirebaseApp } from '@/firebase/provider';
+import { useCallback, useEffect, useState } from 'react';
+import { auth } from '@/lib/firebaseClient';
 import { useRouter } from 'next/navigation';
 
 export function useAuth() {
-  const app = useFirebaseApp();
-  const auth = getAuth(app);
   const router = useRouter();
-
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -26,16 +22,17 @@ export function useAuth() {
     });
 
     return () => unsubscribe();
-  }, [auth]);
+  }, []);
 
   const signOut = useCallback(async () => {
     try {
       await firebaseSignOut(auth);
-      router.push('/');
+      // User will be redirected via the onAuthStateChanged listener
+      // No need to push router here, it can cause race conditions.
     } catch (error) {
       console.error('Error signing out:', error);
     }
-  }, [auth, router]);
+  }, [router]);
 
   return { user, loading, signOut, auth };
 }

@@ -1,12 +1,16 @@
+
 'use client';
 
-import { firebaseConfig } from './config';
-import { initializeFirebase } from './index';
+import { app } from '@/lib/firebaseClient';
+import { getFirestore } from 'firebase/firestore';
+import { getAuth } from 'firebase/auth';
 import { FirebaseProvider } from './provider';
 import type { ReactNode } from 'react';
 
-// Initialize Firebase on the client
-const { app, auth, firestore } = initializeFirebase(firebaseConfig);
+// Re-exporting the auth instance from the central client file
+import { auth } from '@/lib/firebaseClient';
+
+const firestore = getFirestore(app);
 
 export function FirebaseProviderWrapper({ children }: { children: ReactNode }) {
   return (

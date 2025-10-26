@@ -1,12 +1,8 @@
+
 'use client';
-import { useState, useEffect, useRef } from 'react';
+import { useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import {
-  RecaptchaVerifier,
-  signInWithPhoneNumber,
-  ConfirmationResult,
-} from 'firebase/auth';
-import { useAuth } from '@/firebase';
+import type { ConfirmationResult } from 'firebase/auth';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -18,11 +14,11 @@ import {
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, LogIn } from 'lucide-react';
+import { sendOtp, resetRecaptcha } from './send-otp';
 
 export default function LoginPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { auth, loading: authLoading } = useAuth();
   const { toast } = useToast();
 
   const [phoneNumber, setPhoneNumber] = useState('');
@@ -32,54 +28,12 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [otpSent, setOtpSent] = useState(false);
 
-  const recaptchaVerifierRef = useRef<RecaptchaVerifier | null>(null);
-  // We need a separate ref to track if the widget has been rendered.
-  const recaptchaWidgetIdRef = useRef<number | null>(null);
-
   const handleSendOtp = async () => {
-    if (!auth) {
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: 'Authentication service is not ready. Please try again.',
-      });
-      return;
-    }
     setLoading(true);
-
     try {
-      // Create a new verifier instance if it doesn't exist.
-      if (!recaptchaVerifierRef.current) {
-        recaptchaVerifierRef.current = new RecaptchaVerifier(
-          auth,
-          'recaptcha-container',
-          {
-            size: 'invisible',
-            callback: (response: any) => {
-              // reCAPTCHA solved, allow signInWithPhoneNumber.
-            },
-            'expired-callback': () => {
-              toast({
-                title: 'reCAPTCHA Expired',
-                description: 'Please try sending the OTP again.',
-              });
-            },
-          }
-        );
-        // Render the reCAPTCHA widget and store its ID.
-        recaptchaWidgetIdRef.current = await recaptchaVerifierRef.current.render();
-      }
-
-      const verifier = recaptchaVerifierRef.current;
-      
       // The Indian country code is +91
       const fullPhoneNumber = `+91${phoneNumber}`;
-      const confirmation = await signInWithPhoneNumber(
-        auth,
-        fullPhoneNumber,
-        verifier
-      );
-
+      const confirmation = await sendOtp(fullPhoneNumber);
       setConfirmationResult(confirmation);
       setOtpSent(true);
       toast({
@@ -90,13 +44,11 @@ export default function LoginPage() {
       console.error('Error sending OTP:', error);
       toast({
         variant: 'destructive',
-        title: 'Error',
-        description: error.message || 'Failed to send OTP. Please try again.',
+        title: 'Error Sending OTP',
+        description: error.message || 'Failed to send OTP. Please check your phone number and try again.',
       });
-      // Reset the reCAPTCHA on error.
-      if (typeof window !== 'undefined' && (window as any).grecaptcha && recaptchaWidgetIdRef.current !== null) {
-        (window as any).grecaptcha.reset(recaptchaWidgetIdRef.current);
-      }
+      // Reset reCAPTCHA on error
+      resetRecaptcha();
     } finally {
       setLoading(false);
     }
@@ -117,13 +69,20 @@ export default function LoginPage() {
       console.error('Error verifying OTP:', error);
       toast({
         variant: 'destructive',
-        title: 'Error',
+        title: 'Error Verifying OTP',
         description: error.message || 'Invalid OTP. Please try again.',
       });
     } finally {
       setLoading(false);
     }
   };
+  
+  const handlePhoneNumberChange = () => {
+    setOtpSent(false);
+    setOtp('');
+    setConfirmationResult(null);
+    resetRecaptcha();
+  }
 
   return (
     <div className="container flex items-center justify-center py-24">
@@ -158,7 +117,7 @@ export default function LoginPage() {
                 </div>
                 <Button
                   onClick={handleSendOtp}
-                  disabled={loading || authLoading || !phoneNumber}
+                  disabled={loading || !phoneNumber}
                   className="w-full bg-accent text-accent-foreground hover:bg-accent/90"
                 >
                   {loading ? (
@@ -191,10 +150,7 @@ export default function LoginPage() {
                 </Button>
                 <Button
                   variant="link"
-                  onClick={() => {
-                    setOtpSent(false);
-                    setOtp('');
-                  }}
+                  onClick={handlePhoneNumberChange}
                 >
                   Change phone number
                 </Button>
@@ -203,6 +159,8 @@ export default function LoginPage() {
           </div>
         </CardContent>
       </Card>
+      {/* This container must be present in the DOM for reCAPTCHA to work. */}
+      <div id="recaptcha-container" />
     </div>
   );
 }

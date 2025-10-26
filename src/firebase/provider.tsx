@@ -1,3 +1,4 @@
+
 'use client';
 
 import type { FirebaseApp } from 'firebase/app';
@@ -45,6 +46,8 @@ export function useFirestore() {
   return useFirebase().firestore;
 }
 
-export function useAuth() {
+// Deprecated in favor of importing `auth` directly from `lib/firebaseClient` or using the new `useAuth` hook.
+// This remains for backward compatibility with existing components.
+export function useAuthLegacy() {
   return useFirebase().auth;
 }
