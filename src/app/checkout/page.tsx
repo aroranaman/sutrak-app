@@ -5,16 +5,22 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import Image from 'next/image';
 import { Separator } from '@/components/ui/separator';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
+import { useState } from 'react';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { toast } from '@/hooks/use-toast';
 
 export default function CheckoutPage() {
-  const { cart, user } = useUser();
+  const { cart, user, credits, addCredits } = useUser();
+  const [creditsToRedeem, setCreditsToRedeem] = useState(0);
 
   const subtotal = cart.reduce(
     (acc, item) => acc + item.garment.price * item.quantity,
     0
   );
   const tax = subtotal * 0.18;
-  const total = subtotal + tax;
+  const totalBeforeCredits = subtotal + tax;
+  const total = totalBeforeCredits - creditsToRedeem;
 
   if (cart.length === 0) {
     return (
@@ -23,6 +29,24 @@ export default function CheckoutPage() {
         <p>You can't checkout without any items!</p>
       </div>
     );
+  }
+
+  const handleRedeemCredits = () => {
+    const redeemAmount = Math.min(credits, Math.floor(totalBeforeCredits));
+    setCreditsToRedeem(redeemAmount);
+  };
+  
+  const handlePlaceOrder = () => {
+    // In a real app, this would process payment.
+    // For this demo, we just deduct credits.
+    if (creditsToRedeem > 0) {
+        addCredits(-creditsToRedeem);
+    }
+    toast({
+        title: "Order Placed!",
+        description: "Thank you for your purchase (this is a demo)."
+    });
+    // Here you would typically clear the cart and redirect.
   }
 
   return (
@@ -35,7 +59,7 @@ export default function CheckoutPage() {
           Please review your order and complete your purchase.
         </p>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12 max-w-5xl mx-auto">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 md:gap-12 max-w-6xl mx-auto">
         <Card className="shadow-lg">
           <CardHeader>
             <CardTitle>Order Summary</CardTitle>
@@ -77,6 +101,17 @@ export default function CheckoutPage() {
                 <span>₹{tax.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
               </div>
               <Separator className="my-2" />
+               <div className="flex justify-between font-semibold">
+                <span>Total Before Credits</span>
+                <span>₹{totalBeforeCredits.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+              </div>
+               {creditsToRedeem > 0 && (
+                <div className="flex justify-between text-green-600">
+                    <span>Credits Redeemed</span>
+                    <span>- ₹{creditsToRedeem.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                </div>
+               )}
+              <Separator className="my-2" />
               <div className="flex justify-between font-bold text-lg">
                 <span>Total</span>
                 <span>₹{total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
@@ -84,29 +119,52 @@ export default function CheckoutPage() {
             </div>
           </CardContent>
         </Card>
-        <Card className="shadow-lg">
-            <CardHeader>
-                <CardTitle>Payment Information</CardTitle>
-                <CardDescription>This is a demo. No real payment will be processed.</CardDescription>
-            </CardHeader>
-            <CardContent>
-                <div className="space-y-4">
-                    <div>
-                        <p className="text-sm font-medium">Logged in as:</p>
-                        <p>{user?.name ?? 'Guest'}</p>
+        <div className="space-y-8">
+            <Card className="shadow-lg">
+                <CardHeader>
+                    <CardTitle>Redeem Credits</CardTitle>
+                    <CardDescription>Use your credit balance to get a discount. 1 Credit = ₹1.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <div className="flex flex-col gap-4">
+                        <div className="p-4 bg-secondary rounded-lg text-center">
+                            <p className="text-sm text-muted-foreground">Available Credits</p>
+                            <p className="text-3xl font-bold text-primary">{credits}</p>
+                        </div>
+                        {credits > 0 ? (
+                             <Button onClick={handleRedeemCredits} disabled={creditsToRedeem > 0} className="w-full">
+                                {creditsToRedeem > 0 ? 'Credits Applied' : 'Apply Maximum Credits'}
+                            </Button>
+                        ) : (
+                            <p className="text-center text-muted-foreground">You have no credits to redeem.</p>
+                        )}
                     </div>
-                     <div>
-                        <p className="text-sm font-medium">Phone:</p>
-                        <p>{user?.phone ?? 'N/A'}</p>
+                </CardContent>
+            </Card>
+            <Card className="shadow-lg">
+                <CardHeader>
+                    <CardTitle>Payment Information</CardTitle>
+                    <CardDescription>This is a demo. No real payment will be processed.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <div className="space-y-4">
+                        <div>
+                            <p className="text-sm font-medium">Logged in as:</p>
+                            <p>{user?.name ?? 'Guest'}</p>
+                        </div>
+                         <div>
+                            <p className="text-sm font-medium">Phone:</p>
+                            <p>{user?.phone ?? 'N/A'}</p>
+                        </div>
                     </div>
-                </div>
-            </CardContent>
-            <CardFooter>
-                 <Button size="lg" className="w-full bg-primary text-primary-foreground hover:bg-primary/90">
-                    Place Order (Demo)
-                </Button>
-            </CardFooter>
-        </Card>
+                </CardContent>
+                <CardFooter>
+                     <Button onClick={handlePlaceOrder} size="lg" className="w-full bg-primary text-primary-foreground hover:bg-primary/90">
+                        Place Order (Demo)
+                    </Button>
+                </CardFooter>
+            </Card>
+        </div>
       </div>
     </div>
   );

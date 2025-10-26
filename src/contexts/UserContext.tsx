@@ -25,7 +25,7 @@ interface User {
   phone: string | null;
 }
 
-interface MeasurementProfile {
+export interface MeasurementProfile {
   name: string;
   measurements: {
     bust: number;

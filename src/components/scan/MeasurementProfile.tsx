@@ -6,15 +6,32 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { CheckCircle, Save, Scan } from 'lucide-react';
+import { CheckCircle, Save, Scan, HelpCircle } from 'lucide-react';
 import ScanRetrySuggestion from './ScanRetrySuggestion';
 import { useAuth } from '@/firebase';
 import { useRouter } from 'next/navigation';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 
 interface MeasurementProfileProps {
   onNewScan: () => void;
   measurements: any;
 }
+
+const measurementInfo: Record<string, string> = {
+  bustCircumference: "The measurement around the fullest part of your chest.",
+  hipCircumference: "The measurement around the widest part of your hips.",
+  shoulderWidth: "The distance from the end of one shoulder to the other.",
+  sleeveLength: "The length from your shoulder to your wrist.",
+  torsoLength: "The distance from your shoulder to your hip, indicating your upper body length.",
+  inseam: "The length of your inner leg, from your crotch to your ankle.",
+  waist: 'A standardized waist measurement based on typical body proportions relative to your scan. Direct waist measurement is not possible with this scan technology.'
+};
+
 
 export default function MeasurementProfile({ onNewScan, measurements }: MeasurementProfileProps) {
   const { credits, addProfile } = useUser();
@@ -50,9 +67,12 @@ export default function MeasurementProfile({ onNewScan, measurements }: Measurem
       return;
     }
     
+    // Create a standardized waist measurement (heuristic)
+    const estimatedWaist = measurements.hipCircumferenceCm * 0.85;
+
     const measurementsToSave = {
       bust: parseFloat(measurements.upperTorsoCircumferenceCm.toFixed(1)),
-      waist: 74,
+      waist: parseFloat(estimatedWaist.toFixed(1)),
       hip: parseFloat(measurements.hipCircumferenceCm.toFixed(1)),
       inseam: parseFloat(measurements.inseamCm.toFixed(1)),
       shoulderWidth: parseFloat(measurements.shoulderWidthCm.toFixed(1))
@@ -83,12 +103,12 @@ export default function MeasurementProfile({ onNewScan, measurements }: Measurem
   }
 
   const displayMeasurements = {
-    "Upper Torso (Bust)": measurements?.upperTorsoCircumferenceCm,
-    "Hip Circumference": measurements?.hipCircumferenceCm,
-    "Shoulder Width": measurements?.shoulderWidthCm,
-    "Sleeve Length": measurements?.sleeveLengthCm,
-    "Torso Length": measurements?.torsoLengthCm,
-    "Inseam": measurements?.inseamCm,
+    bustCircumference: measurements?.upperTorsoCircumferenceCm,
+    hipCircumference: measurements?.hipCircumferenceCm,
+    shoulderWidth: measurements?.shoulderWidthCm,
+    sleeveLength: measurements?.sleeveLengthCm,
+    torsoLength: measurements?.torsoLengthCm,
+    inseam: measurements?.inseamCm,
   };
 
 
@@ -106,13 +126,24 @@ export default function MeasurementProfile({ onNewScan, measurements }: Measurem
         </div>
       </CardHeader>
       <CardContent className="space-y-6">
+        <TooltipProvider>
         {measurements ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-lg">
           {Object.entries(displayMeasurements).map(([key, value]) => (
             <div key={key} className="flex justify-between items-center p-3 bg-secondary rounded-lg">
-              <span className="capitalize font-medium text-secondary-foreground">
-                {key}
-              </span>
+                <div className="flex items-center gap-2">
+                    <span className="capitalize font-medium text-secondary-foreground">
+                        {key.replace(/([A-Z])/g, ' $1').trim()}
+                    </span>
+                    <Tooltip>
+                        <TooltipTrigger>
+                            <HelpCircle className="size-4 text-muted-foreground" />
+                        </TooltipTrigger>
+                        <TooltipContent>
+                            <p>{measurementInfo[key]}</p>
+                        </TooltipContent>
+                    </Tooltip>
+                </div>
               <span className="font-bold text-primary">{value.toFixed(1)} cm</span>
             </div>
           ))}
@@ -120,6 +151,7 @@ export default function MeasurementProfile({ onNewScan, measurements }: Measurem
         ) : (
           <p>No measurement data available. Please complete a scan.</p>
         )}
+        </TooltipProvider>
         <div>
           <label htmlFor="profileName" className="text-sm font-medium text-foreground/80">Profile Name</label>
           <Input
@@ -131,7 +163,7 @@ export default function MeasurementProfile({ onNewScan, measurements }: Measurem
             disabled={isSaved}
           />
         </div>
-        <CardDescription>Note on Waist: A "Waist" measurement is not reliably possible as it requires finding the torso's narrowest point, which is not provided by the shoulder/hip landmarks.</CardDescription>
+        <CardDescription>Note: Waist measurement is an estimation based on standard body proportions relative to your hip and torso, as direct measurement is not possible with this technology.</CardDescription>
       </CardContent>
       <CardFooter className="flex flex-col sm:flex-row justify-between gap-4">
         <Button variant="outline" onClick={onNewScan}>
@@ -146,5 +178,3 @@ export default function MeasurementProfile({ onNewScan, measurements }: Measurem
     </Card>
   );
 }
-
-    

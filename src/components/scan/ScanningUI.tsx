@@ -230,39 +230,43 @@ export default function ScanningUI({ onComplete }: ScanningUIProps) {
         const frontLms = front.poseWorldLandmarks;
         const sideLms = side.poseWorldLandmarks;
 
-        // --- Calibration ---
-        // Get the vertical distance between shoulders and hips in the 3D world space
-        const world_f_L_Shoulder = frontLms[POSE_LANDMARKS.LEFT_SHOULDER];
-        const world_f_L_Hip = frontLms[POSE_LANDMARKS.LEFT_HIP];
-        const verticalDist3D = Math.abs(world_f_L_Shoulder.y - world_f_L_Hip.y);
+        // --- New Calibration Logic ---
+        const userHeightCm = parseFloat(userHeight);
         
-        // This is a rough estimation of a real-world torso length in meters
-        const realWorldTorsoEstMeters = parseFloat(userHeight) / 170 * 0.5; // Assume 50cm torso for 170cm person
+        // Use full body height from landmarks to calibrate
+        const nose = frontLms[POSE_LANDMARKS.NOSE];
+        const leftHeel = frontLms[POSE_LANDMARKS.LEFT_HEEL];
+        const rightHeel = frontLms[POSE_LANDMARKS.RIGHT_HEEL];
+        const highestPoint = nose; // Use nose as a proxy for the top of the head
+        const lowestPointY = (leftHeel.y + rightHeel.y) / 2;
         
-        if (verticalDist3D === 0) {
-            toast({ variant: 'destructive', title: 'Calibration Error', description: 'Could not calibrate from 3D data. Ensure your body is clearly visible.' });
+        const modelHeightInUnits = Math.abs(highestPoint.y - lowestPointY);
+        
+        if (modelHeightInUnits === 0) {
+            toast({ variant: 'destructive', title: 'Calibration Error', description: 'Could not calculate model height. Ensure your body is clearly visible.' });
             resetScan();
             return;
         }
-
-        const metersPerUnit = realWorldTorsoEstMeters / verticalDist3D;
+        
+        // This factor converts MediaPipe's arbitrary units to centimeters
+        const cmPerUnit = userHeightCm / modelHeightInUnits;
 
         // --- Measurements (in cm) ---
         const f_L_Shoulder = frontLms[POSE_LANDMARKS.LEFT_SHOULDER];
         const f_R_Shoulder = frontLms[POSE_LANDMARKS.RIGHT_SHOULDER];
-        const shoulderWidthCm = get3DDistance(f_L_Shoulder, f_R_Shoulder) * metersPerUnit * 100;
+        const shoulderWidthCm = get3DDistance(f_L_Shoulder, f_R_Shoulder) * cmPerUnit;
 
         const f_L_Hip = frontLms[POSE_LANDMARKS.LEFT_HIP];
         const f_R_Hip = frontLms[POSE_LANDMARKS.RIGHT_HIP];
-        const hipWidthCm = get3DDistance(f_L_Hip, f_R_Hip) * metersPerUnit * 100;
+        const hipWidthCm = get3DDistance(f_L_Hip, f_R_Hip) * cmPerUnit;
 
         const s_L_Hip = sideLms[POSE_LANDMARKS.LEFT_HIP];
         const s_R_Hip = sideLms[POSE_LANDMARKS.RIGHT_HIP];
-        const hipDepthCm = get3DDistance(s_L_Hip, s_R_Hip) * metersPerUnit * 100;
+        const hipDepthCm = get3DDistance(s_L_Hip, s_R_Hip) * cmPerUnit;
 
         const s_L_Shoulder = sideLms[POSE_LANDMARKS.LEFT_SHOULDER];
         const s_R_Shoulder = sideLms[POSE_LANDMARKS.RIGHT_SHOULDER];
-        const shoulderDepthCm = get3DDistance(s_L_Shoulder, s_R_Shoulder) * metersPerUnit * 100;
+        const shoulderDepthCm = get3DDistance(s_L_Shoulder, s_R_Shoulder) * cmPerUnit;
 
         // Estimate circumferences using Ramanujan's approximation for an ellipse
         const hipA = hipWidthCm / 2;
@@ -271,15 +275,16 @@ export default function ScanningUI({ onComplete }: ScanningUIProps) {
         
         const bustA = shoulderWidthCm / 2;
         const bustB = shoulderDepthCm / 2;
-        const upperTorsoCircumferenceCm = Math.PI * (3 * (bustA + bustB) - Math.sqrt((3 * bustA + bustB) * (bustA + 3 * bustB)));
+        // The bust is anatomically wider than just the shoulder depth, add a heuristic multiplier
+        const upperTorsoCircumferenceCm = Math.PI * (3 * (bustA + bustB) - Math.sqrt((3 * bustA + bustB) * (bustA + 3 * bustB))) * 1.1;
 
         const f_L_Ankle = frontLms[POSE_LANDMARKS.LEFT_ANKLE];
-        const inseamCm = get3DDistance(f_L_Hip, f_L_Ankle) * metersPerUnit * 100;
+        const inseamCm = get3DDistance(f_L_Hip, f_L_Ankle) * cmPerUnit;
         
         const f_L_Wrist = frontLms[POSE_LANDMARKS.LEFT_WRIST];
-        const sleeveLengthCm = get3DDistance(f_L_Shoulder, f_L_Wrist) * metersPerUnit * 100;
+        const sleeveLengthCm = get3DDistance(f_L_Shoulder, f_L_Wrist) * cmPerUnit;
         
-        const torsoLengthCm = get3DDistance(f_L_Shoulder, f_L_Hip) * metersPerUnit * 100;
+        const torsoLengthCm = get3DDistance(f_L_Shoulder, f_L_Hip) * cmPerUnit;
 
         onComplete({
             shoulderWidthCm,
@@ -366,5 +371,3 @@ export default function ScanningUI({ onComplete }: ScanningUIProps) {
         </Card>
     );
 }
-
-    
