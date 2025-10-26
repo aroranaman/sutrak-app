@@ -1,7 +1,6 @@
 import { initializeApp, getApps, getApp, type FirebaseApp } from 'firebase/app';
 import { getAuth, type Auth, setPersistence, inMemoryPersistence } from 'firebase/auth';
 import { 
-  getFirestore, 
   initializeFirestore,
   persistentLocalCache,
   persistentMultipleTabManager,
@@ -33,15 +32,22 @@ setPersistence(auth, inMemoryPersistence).catch((error) => {
 });
 
 
+/**
+ * Transport notes:
+ * - preferRest: true     → queries/reads/writes via REST (no websocket)
+ * - useFetchStreams: true→ streaming via fetch (not XHR webchannel), plays nicer with proxies
+ * Only enable experimentalForceLongPolling if your proxy breaks fetch streams too.
+ */
 const firestore: Firestore = initializeFirestore(app, {
-  // Use long polling as it is more reliable in some cloud environments
-  experimentalForceLongPolling: true,
+  preferRest: true,
+  useFetchStreams: true, // <-- key change: avoid XHR long-poll "Listen/channel"
+  // experimentalForceLongPolling: true, // <— leave this OFF now; turn ON only if you still see “offline”
   localCache: persistentLocalCache({
     tabManager: persistentMultipleTabManager(),
   }),
 });
 
-// Ensure network is ON (in case disableNetwork got called somewhere)
+// Ensure network is on
 enableNetwork(firestore).catch(() => {});
 
 

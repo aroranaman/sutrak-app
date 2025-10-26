@@ -76,18 +76,19 @@ export default function LoginPage() {
     if (!confirmationResult) return;
     setLoading(true);
     try {
-      if (!(await probeOnline())) {
-        throw new Error('BROWSER_OFFLINE');
-      }
-
+      // If you kept the probeOnline, keep it—they're helpful
+      // if (!(await probeOnline())) throw new Error('BROWSER_OFFLINE');
+  
+      // 1) Confirm OTP with Auth (this is the *real* login)
       const result = await confirmOtp(confirmationResult, otp);
-      await grantJoinBonusIfFirstLogin(result.user);
-
-      toast({
-        title: 'Success!',
-        description: 'You have been signed in successfully.',
-      });
+  
+      // 2) Immediately go to the app (do not block on Firestore)
       const redirectUrl = searchParams.get('redirect') || '/';
+      toast({ title: 'Success!', description: 'You have been signed in successfully.' });
+      // Start the bonus, but don't let its failure cancel login UX
+      grantJoinBonusIfFirstLogin(result.user).catch((e) =>
+        console.warn('[bonus] non-fatal:', e)
+      );
       router.push(redirectUrl);
     } catch (error: any) {
       console.error('Error verifying OTP:', error);
@@ -97,7 +98,7 @@ export default function LoginPage() {
           variant: 'destructive',
           title: 'Network Error',
           description:
-            'Could not verify OTP because the client appears to be offline. If you are in Cloud Workstations, try a regular browser.',
+            'Could not verify OTP because the client appears to be offline.',
           duration: 9000,
         });
       } else {
