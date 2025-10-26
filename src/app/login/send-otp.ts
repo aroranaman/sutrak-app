@@ -71,40 +71,32 @@ export async function getOrCreateRecaptcha(containerId = 'recaptcha-container') 
   return recaptcha;
 }
 
+function normalizeAndLogFirebaseError(e: any, phase: 'send'|'confirm') {
+  const msg = String(e?.message || e);
+  const code = e?.code || e?.customData?.code;
+  const api = e?.customData?.apiName || e?.customData?.endpoint;
+  const status = e?.customData?.httpStatus;
+  // Some SDK builds expose request details here:
+  const url = e?.customData?.requestUri || e?.url || '(unknown-url)';
+  // Log to console for now:
+  console.error(`[OTP ${phase} error]`, { code, status, api, url, msg, raw: e });
+  return { code, status, api, url, msg };
+}
+
 /**
  * Sends OTP after ensuring persistence, connectivity, and a healthy verifier.
  */
 export async function sendOtp(phoneE164: string): Promise<ConfirmationResult> {
-  // 1) force in-memory persistence to avoid “client offline” due to storage
   await ensureInMemoryPersistence();
-
-  // 2) quick probe
-  const online = await probeOnline();
-  if (!online) {
-    const err = new Error('BROWSER_OFFLINE');
-    (err as any).code = 'browser/offline';
-    throw err;
-  }
-
-  // 3) verifier
+  if (!(await probeOnline())) { const err = new Error('BROWSER_OFFLINE'); (err as any).code='browser/offline'; throw err; }
   const verifier = await getOrCreateRecaptcha();
-
-  // 4) send
   try {
     return await signInWithPhoneNumber(auth, phoneE164, verifier);
   } catch (e: any) {
-    // If this instance got into a bad state, recreate once and retry
-    const msg = String(e?.message || '');
-    if (/recaptcha/i.test(msg) || /offline/i.test(msg)) {
-      try {
-        resetRecaptcha();
-        const v2 = await getOrCreateRecaptcha();
-        return await signInWithPhoneNumber(auth, phoneE164, v2);
-      } catch (e2) {
-        throw e2;
-      }
-    }
-    throw e;
+    normalizeAndLogFirebaseError(e, 'send');
+    resetRecaptcha();
+    const v2 = await getOrCreateRecaptcha();
+    return await signInWithPhoneNumber(auth, phoneE164, v2);
   }
 }
 
@@ -115,13 +107,9 @@ export async function confirmOtp(confirmation: ConfirmationResult, code: string)
   try {
     return await confirmation.confirm(code);
   } catch (e: any) {
-    // Normalize typical “offline” signatures for clearer UI
+    normalizeAndLogFirebaseError(e, 'confirm');
     const msg = String(e?.message || '');
-    if (/offline/i.test(msg)) {
-      const err = new Error('CLIENT_OFFLINE');
-      (err as any).code = 'auth/client-offline';
-      throw err;
-    }
+    if (/offline/i.test(msg)) { const err = new Error('CLIENT_OFFLINE'); (err as any).code='auth/client-offline'; throw err; }
     throw e;
   }
 }
