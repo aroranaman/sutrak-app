@@ -17,28 +17,27 @@ function toNum(v: string | number): number {
 }
 
 export default function MeasurementProfile({
-  measurements: measured,
-  onNewScan,
+  measured,
+  profileName: initialName = "Profile 1",
 }: {
-  measurements: Partial<any>;
-  onNewScan: () => void;
+  measured: Partial<Measurements>;
+  profileName?: string;
 }) {
-  const { user: firebaseUser } = useAuth();
-  const { addProfile } = useUser();
-  
   // Editable form state — defaults filled from machine values
   const [form, setForm] = React.useState<Measurements>({
     bust: toNum(measured.bust ?? 95.5),
     hip: toNum(measured.hip ?? 94.7),
-    shoulderWidth: toNum(measured.shoulderWidth ?? 44.5),
-    sleeveLength: toNum(measured.sleeveLength ?? 56),
-    torsoLength: toNum(measured.torsoLength ?? 60),
+    shoulder: toNum(measured.shoulder ?? 44.5),
+    sleeve: toNum(measured.sleeve ?? 56),
+    torso: toNum(measured.torso ?? 60),
     inseam: toNum(measured.inseam ?? 58),
   });
 
-  const [name, setName] = React.useState("Profile 1");
+  const [name, setName] = React.useState(initialName);
   const [saving, setSaving] = React.useState(false);
   const { toast } = useToast();
+  const { user: firebaseUser } = useAuth();
+  const { addProfile } = useUser();
 
   function setField<K extends keyof Measurements>(k: K) {
     return (e: React.ChangeEvent<HTMLInputElement>) =>
@@ -65,8 +64,12 @@ export default function MeasurementProfile({
 
     setSaving(true);
     try {
-      const result = await saveMeasurementClient(firebaseUser, { name: name.trim(), measurements: form });
-      addProfile({ name: name.trim(), measurements: form }, result.balance);
+      const profileData = { name: name.trim(), measurements: form };
+      const result = await saveMeasurementClient(firebaseUser, profileData);
+      
+      // Update local state via context
+      addProfile(profileData, result.balance);
+
       toast({
         title: "Saved",
         description: "Measurement profile saved. 100 credits deducted.",
@@ -85,15 +88,6 @@ export default function MeasurementProfile({
       setSaving(false);
     }
   }
-  
-  const avatarMeasurements: Measurements = {
-    bust: form.bust,
-    hip: form.hip,
-    shoulder: form.shoulderWidth,
-    sleeve: form.sleeveLength,
-    torso: form.torsoLength,
-    inseam: form.inseam,
-  };
 
   return (
     <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
@@ -126,21 +120,21 @@ export default function MeasurementProfile({
             <label className="text-sm mb-1 block">Shoulder (cm)</label>
             <Input
               inputMode="decimal"
-              value={form.shoulderWidth}
-              onChange={(e) => setForm(s => ({...s, shoulderWidth: toNum(e.target.value)}))}
+              value={form.shoulder}
+              onChange={setField("shoulder")}
             />
           </div>
           <div>
             <label className="text-sm mb-1 block">Sleeve (cm)</label>
             <Input
               inputMode="decimal"
-              value={form.sleeveLength}
-              onChange={(e) => setForm(s => ({...s, sleeveLength: toNum(e.target.value)}))}
+              value={form.sleeve}
+              onChange={setField("sleeve")}
             />
           </div>
           <div>
             <label className="text-sm mb-1 block">Torso (cm)</label>
-            <Input inputMode="decimal" value={form.torsoLength} onChange={(e) => setForm(s => ({...s, torsoLength: toNum(e.target.value)}))} />
+            <Input inputMode="decimal" value={form.torso} onChange={setField("torso")} />
           </div>
           <div>
             <label className="text-sm mb-1 block">Inseam (cm)</label>
@@ -165,7 +159,8 @@ export default function MeasurementProfile({
       <div>
         <h2 className="text-xl font-semibold mb-2">3D Avatar Preview</h2>
         <AvatarCanvasShell
-          m={avatarMeasurements}
+          // show only the body with the corrected numbers (no ease UI)
+          m={form}
           showDress={false}
         />
       </div>

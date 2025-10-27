@@ -32,9 +32,9 @@ export interface MeasurementProfile {
   measurements: {
     bust: number;
     hip: number;
-    shoulderWidth: number;
-    sleeveLength: number;
-    torsoLength: number;
+    shoulder: number;
+    sleeve: number;
+    torso: number;
     inseam: number;
   };
 }
@@ -178,7 +178,15 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
   const addProfile = (profile: MeasurementProfile, newBalance: number) => {
     // This function now just updates the local state.
     // The server update is handled by the action.
-    setProfiles(prev => [...prev, profile]);
+    setProfiles(prev => {
+        const existingProfileIndex = prev.findIndex(p => p.name === profile.name);
+        if (existingProfileIndex > -1) {
+            const updatedProfiles = [...prev];
+            updatedProfiles[existingProfileIndex] = profile;
+            return updatedProfiles;
+        }
+        return [...prev, profile];
+    });
     setCredits(newBalance);
   };
 
