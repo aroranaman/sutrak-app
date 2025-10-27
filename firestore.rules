@@ -4,7 +4,7 @@ service cloud.firestore {
     function isOwner(uid) { return request.auth != null && request.auth.uid == uid; }
 
     match /users/{uid} {
-      allow read, create, update: if isOwner(uid);
+      allow read, update, create: if isOwner(uid);
 
       match /credits_ledger/{entryId} {
         allow read, create: if isOwner(uid);
@@ -13,6 +13,15 @@ service cloud.firestore {
       match /measurements/{mid} {
         allow read, create, update, delete: if isOwner(uid);
       }
+    }
+
+    match /orders/{orderId} {
+      allow read, create: if request.auth != null && request.resource.data.uid == request.auth.uid;
+      allow update: if request.auth != null && resource.data.uid == request.auth.uid;
+    }
+
+    match /payments/{pid} {
+      allow read, create: if request.auth != null;
     }
   }
 }
