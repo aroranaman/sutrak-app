@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 export const runtime = "nodejs";
-import { adminDb } from "@/lib/admin";
+
+import { adminDb, adminProjectId } from "@/lib/admin";
 import { firebaseConfig } from "@/firebase/config";
-import admin from "firebase-admin";
 
 export async function POST(req: NextRequest) {
   const { uid } = await req.json();
@@ -14,9 +14,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       ok: true,
       serverCredits: credits,
-      adminProjectId: (admin.app().options.projectId as string | undefined) ?? null,
+      serverProjectId: adminProjectId(),
       clientProjectId: firebaseConfig.projectId,
-      hasDoc: snap.exists,
+      hasUserDoc: snap.exists,
     });
   } catch (e: any) {
     return NextResponse.json({ ok: false, error: String(e?.message || e) }, { status: 500 });

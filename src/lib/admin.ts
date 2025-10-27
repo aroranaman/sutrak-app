@@ -2,18 +2,20 @@
 import admin from "firebase-admin";
 import { firebaseConfig } from "@/firebase/config";
 
-// If you use a service account JSON, set GOOGLE_APPLICATION_CREDENTIALS env var.
-// We also pin the projectId to match the client config to avoid cross-project reads.
+// IMPORTANT:
+// 1) Ensure GOOGLE_APPLICATION_CREDENTIALS env var points to a service-account JSON.
+// 2) Pin projectId to match the client config, otherwise admin can hit the wrong project.
+
 if (!admin.apps.length) {
   admin.initializeApp({
     credential: admin.credential.applicationDefault(),
-    projectId: firebaseConfig.projectId,      // <- critical
+    projectId: firebaseConfig.projectId,
     databaseURL: `https://${firebaseConfig.projectId}.firebaseio.com`,
   });
 }
 
 export const adminDb = admin.firestore();
 export const adminFieldValue = admin.firestore.FieldValue;
-export function currentAdminProject(): string | undefined {
-  return admin.app().options.projectId as string | undefined;
+export function adminProjectId() {
+  return (admin.app().options.projectId as string | undefined) ?? "unknown";
 }

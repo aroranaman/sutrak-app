@@ -6,9 +6,7 @@ import type { Measurements } from "./R3FBody";
 
 const R3FBody = dynamic(() => import("./R3FBody"), {
   ssr: false,
-  loading: () => (
-    <div className="h-96 w-full rounded-lg border animate-pulse" data-testid="r3f-loading" />
-  ),
+  loading: () => <div className="h-96 w-full rounded-lg border animate-pulse" data-testid="r3f-loading" />,
 });
 
 class CanvasErrorBoundary extends React.Component<{children:React.ReactNode},{err?:unknown}>{

@@ -1,16 +1,8 @@
-// src/actions/saveMeasurementClient.ts
-'use client';
+"use client";
 
-import {
-  doc,
-  setDoc,
-  serverTimestamp,
-  collection,
-  addDoc,
-  getDoc,
-} from 'firebase/firestore';
-import { firestore } from '@/lib/firebaseClient';
-import { User } from 'firebase/auth';
+import { firestore } from "@/lib/firebaseClient";
+import { collection, addDoc, serverTimestamp, setDoc, doc, getDoc } from "firebase/firestore";
+import type { User } from "firebase/auth";
 import type { MeasurementProfile } from '@/contexts/UserContext';
 
 
@@ -26,7 +18,6 @@ async function spendMeasurement(uid: string) {
     throw new Error(data?.error || "NOT_ENOUGH_CREDITS");
   }
 }
-
 
 export async function saveMeasurementClient(
   user: User,
@@ -65,6 +56,8 @@ export async function saveMeasurementClient(
     await setDoc(userRef, { profiles: updatedProfiles }, { merge: true });
 
     // 4. Return the new balance from the server after deduction.
+    // The credit balance is already updated on the server by the API call.
+    // The client will get the new balance via the real-time listener in UserContext.
     const updatedUserDocSnap = await getDoc(userRef);
     const newBalance = updatedUserDocSnap.exists() ? updatedUserDocSnap.data().credits || 0 : 0;
     
