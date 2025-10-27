@@ -1,3 +1,4 @@
+
 import { initializeApp, getApps, getApp, type FirebaseApp } from 'firebase/app';
 import { getAuth, type Auth, setPersistence, inMemoryPersistence } from 'firebase/auth';
 import { 
@@ -5,8 +6,8 @@ import {
   persistentLocalCache,
   persistentMultipleTabManager,
   enableNetwork,
-  experimentalForceLongPolling,
-  type Firestore 
+  type Firestore,
+  FirestoreSettings
 } from 'firebase/firestore';
 import { firebaseConfig } from '@/firebase/config';
 
@@ -25,30 +26,32 @@ const app: FirebaseApp = initializeFirebaseApp();
 // Initialize services and export them as singletons.
 const auth: Auth = getAuth(app);
 
-// Force in-memory persistence for Auth to avoid storage-related issues
-// in sandboxed environments like Cloud Workstations.
-setPersistence(auth, inMemoryPersistence).catch((error) => {
-  console.error("Error setting auth persistence:", error);
-});
+let firestore: Firestore;
 
+// Universal Initialization for Firestore
+if (typeof window === 'undefined') {
+  // Server-side: Use basic initialization
+  firestore = initializeFirestore(app, {});
+} else {
+  // Client-side: Initialize with persistence
+  // Force in-memory persistence for Auth to avoid storage-related issues
+  // in sandboxed environments like Cloud Workstations.
+  setPersistence(auth, inMemoryPersistence).catch((error) => {
+    console.error("Error setting auth persistence:", error);
+  });
 
-/**
- * Transport notes:
- * - preferRest: true     → queries/reads/writes via REST (no websocket)
- * - useFetchStreams: true→ streaming via fetch (not XHR webchannel), plays nicer with proxies
- * Only enable experimentalForceLongPolling if your proxy breaks fetch streams too.
- */
-const firestore: Firestore = initializeFirestore(app, {
-  preferRest: true,
-  useFetchStreams: true, // <-- key change: avoid XHR long-poll "Listen/channel"
-  // experimentalForceLongPolling: true, // <— leave this OFF now; turn ON only if you still see “offline”
-  localCache: persistentLocalCache({
-    tabManager: persistentMultipleTabManager(),
-  }),
-});
+  const settings: FirestoreSettings = {
+    preferRest: true,
+    useFetchStreams: true,
+    localCache: persistentLocalCache({
+      tabManager: persistentMultipleTabManager(),
+    }),
+  };
 
-// Ensure network is on
-enableNetwork(firestore).catch(() => {});
-
+  firestore = initializeFirestore(app, settings);
+  
+  // Ensure network is on (client-side only)
+  enableNetwork(firestore).catch(() => {});
+}
 
 export { app, auth, firestore };
