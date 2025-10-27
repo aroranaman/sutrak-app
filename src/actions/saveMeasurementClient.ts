@@ -32,11 +32,11 @@ export async function saveMeasurementClient(
   user: User,
   profile: MeasurementProfile
 ) {
-  const userRef = doc(firestore, 'users', user.uid);
-  const measurementsRef = collection(userRef, 'measurements');
-
   // 1. Spend credits via the secure API endpoint first.
   await spendMeasurement(user.uid);
+  
+  const userRef = doc(firestore, 'users', user.uid);
+  const measurementsRef = collection(userRef, 'measurements');
 
   // 2. If spending was successful, proceed to save the measurement document.
   try {
