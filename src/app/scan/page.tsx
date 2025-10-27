@@ -1,6 +1,6 @@
 
 'use client';
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import ScanTutorial from '@/components/scan/ScanTutorial';
 import ScanningUI from '@/components/scan/ScanningUI';
 import ScanProcessing from '@/components/scan/ScanProcessing';
@@ -15,20 +15,42 @@ export default function ScanPage() {
   const [measurementResults, setMeasurementResults] = useState(null);
   const [scriptsLoaded, setScriptsLoaded] = useState(false);
 
-  const handleScriptsLoaded = () => {
+  const handleScriptsLoaded = useCallback(() => {
     setScriptsLoaded(true);
-  };
+  }, []);
 
-  const onTutorialComplete = () => setStep('scanning');
+  useEffect(() => {
+    // Check if the scripts are already loaded when the component mounts
+    // This handles cases where scripts are cached by the browser.
+    if ((window as any).Pose && (window as any).drawConnectors) {
+      handleScriptsLoaded();
+    }
+  }, [handleScriptsLoaded]);
+
+  const onTutorialComplete = () => {
+    if (scriptsLoaded) {
+      setStep('scanning');
+    } else {
+      // If scripts are not loaded yet, wait for them.
+      // This is a fallback, useEffect should handle most cases.
+      const checkScripts = setInterval(() => {
+        if ((window as any).Pose && (window as any).drawConnectors) {
+          handleScriptsLoaded();
+          setStep('scanning');
+          clearInterval(checkScripts);
+        }
+      }, 100);
+    }
+  };
   
   const onScanComplete = (results: any) => {
-    // Map the incoming detailed keys to the simplified keys expected by AvatarPreview
+    // Map the incoming detailed keys to the simplified keys expected by MeasurementProfile
     const mappedResults = {
       bust: results.upperTorsoCircumferenceCm,
       hip: results.hipCircumferenceCm,
-      shoulderWidth: results.shoulderWidthCm,
-      sleeveLength: results.sleeveLengthCm,
-      torsoLength: results.torsoLengthCm,
+      shoulder: results.shoulderWidthCm,
+      sleeve: results.sleeveLengthCm,
+      torso: results.torsoLengthCm,
       inseam: results.inseamCm,
     };
     setMeasurementResults(mappedResults);
@@ -55,11 +77,13 @@ export default function ScanPage() {
         src="https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js"
         crossOrigin="anonymous"
         onLoad={handleScriptsLoaded}
+        strategy="lazyOnload"
       />
       <Script
         src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"
         crossOrigin="anonymous"
         onLoad={handleScriptsLoaded}
+        strategy="lazyOnload"
       />
       <div className="container py-12">
         <AnimatePresence mode="wait">
@@ -99,7 +123,7 @@ export default function ScanPage() {
               <ScanProcessing onComplete={onProcessingComplete} />
             </motion.div>
           )}
-          {step === 'results' && (
+          {step === 'results' && measurementResults && (
             <motion.div
               key="results"
               initial="initial"
@@ -109,8 +133,7 @@ export default function ScanPage() {
               transition={pageTransition}
             >
               <MeasurementProfile
-                onNewScan={() => setStep('tutorial')}
-                measurements={measurementResults}
+                measured={measurementResults}
               />
             </motion.div>
           )}
