@@ -1,15 +1,32 @@
 // src/actions/saveMeasurementClient.ts
+'use client';
+
 import {
   doc,
   setDoc,
   serverTimestamp,
   collection,
   addDoc,
+  getDoc,
 } from 'firebase/firestore';
 import { firestore } from '@/lib/firebaseClient';
 import { User } from 'firebase/auth';
 import type { MeasurementProfile } from '@/contexts/UserContext';
-import { spendMeasurement } from '@/lib/spendMeasurement';
+
+
+// Calls the server API that performs an atomic -100 credit spend
+async function spendMeasurement(uid: string) {
+  const res = await fetch("/api/credits/spend-measurement", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ uid }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data?.error || "NOT_ENOUGH_CREDITS");
+  }
+}
+
 
 export async function saveMeasurementClient(
   user: User,
@@ -19,27 +36,36 @@ export async function saveMeasurementClient(
   const measurementsRef = collection(userRef, 'measurements');
 
   // 1. Spend credits via the secure API endpoint first.
-  // This will throw an error and stop execution if the user doesn't have enough credits.
   await spendMeasurement(user.uid);
 
   // 2. If spending was successful, proceed to save the measurement document.
   try {
-    const newMeasurementRef = doc(measurementsRef); // Create a new doc reference with a unique ID
     await addDoc(measurementsRef, {
       ...profile,
       createdAt: serverTimestamp(),
     });
 
-    // 3. Update the user's profiles array in their main document
-    // Note: This part is now handled by the local context update for immediate UI feedback.
-    // A more robust solution might use a transaction or a cloud function to keep this in sync.
-    const userDocSnap = await (await import('firebase/firestore')).getDoc(userRef);
+    // 3. Update the user's profiles array in their main document for easy access
+    const userDocSnap = await getDoc(userRef);
     const existingProfiles = userDocSnap.exists() ? userDocSnap.data().profiles || [] : [];
-    const updatedProfiles = [...existingProfiles, profile];
+    
+    // Check if a profile with the same name already exists
+    const profileIndex = existingProfiles.findIndex((p: MeasurementProfile) => p.name === profile.name);
+    
+    let updatedProfiles;
+    if (profileIndex > -1) {
+      // Update existing profile
+      updatedProfiles = [...existingProfiles];
+      updatedProfiles[profileIndex] = profile;
+    } else {
+      // Add new profile
+      updatedProfiles = [...existingProfiles, profile];
+    }
+    
     await setDoc(userRef, { profiles: updatedProfiles }, { merge: true });
 
     // 4. Return the new balance from the server after deduction.
-    const updatedUserDocSnap = await (await import('firebase/firestore')).getDoc(userRef);
+    const updatedUserDocSnap = await getDoc(userRef);
     const newBalance = updatedUserDocSnap.exists() ? updatedUserDocSnap.data().credits || 0 : 0;
     
     return { balance: newBalance };

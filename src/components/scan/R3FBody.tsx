@@ -5,37 +5,31 @@ import { Canvas } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
 
 export type Measurements = {
-  bust: number; hip: number; shoulder: number; sleeve: number; torso: number; inseam: number;
-};
-export type Fit = {
-  bustEase: number; hipEase: number; shoulderEase: number; sleeveEase: number; torsoEase: number; inseamEase: number;
+  bust: number; hip: number; shoulderWidth: number; sleeveLength: number; torsoLength: number; inseam: number;
 };
 
 function clamp(n:number,min:number,max:number){return Math.max(min,Math.min(max,n));}
 function safeCircToRadius(cm:number){const c=Number.isFinite(cm)?cm:1; return clamp(c/(2*Math.PI)/10,0.01,5);}
 function safeLen(cm:number){const v=Number.isFinite(cm)?cm:1; return clamp(v/10,0.1,10);}
 
-function Body({ m, fit }: { m: Measurements; fit: Fit }) {
-  const chestR = safeCircToRadius(m.bust + fit.bustEase);
-  const hipR   = safeCircToRadius(m.hip + fit.hipEase);
-  const torsoL = safeLen(m.torso + fit.torsoEase);
-  const sleeveL= safeLen(m.sleeve + fit.sleeveEase);
-  const inseamL= safeLen(m.inseam + fit.inseamEase);
-  const shoulderW = clamp(((m.shoulder + fit.shoulderEase) ?? 40)/100, 0.1, 1.4);
+function Body({ m }: { m: Measurements }) {
+  const chestR = safeCircToRadius(m.bust);
+  const hipR   = safeCircToRadius(m.hip);
+  const torsoL = safeLen(m.torsoLength);
+  const sleeveL= safeLen(m.sleeveLength);
+  const inseamL= safeLen(m.inseam);
+  const shoulderW = clamp((m.shoulderWidth ?? 40)/100, 0.1, 1.4);
 
   return (
     <group>
-      {/* Torso */}
       <mesh position={[0, torsoL/2, 0]}>
         <cylinderGeometry args={[chestR*0.9, hipR, torsoL, 24]} />
         <meshStandardMaterial />
       </mesh>
-      {/* Head */}
       <mesh position={[0, torsoL + chestR*0.8, 0]}>
         <sphereGeometry args={[chestR*0.5, 24, 24]} />
         <meshStandardMaterial />
       </mesh>
-      {/* Arms */}
       <mesh position={[ shoulderW/2, torsoL*0.8, 0]} rotation={[0,0,Math.PI/2]}>
         <cylinderGeometry args={[chestR*0.25,chestR*0.25,sleeveL,16]} />
         <meshStandardMaterial />
@@ -44,7 +38,6 @@ function Body({ m, fit }: { m: Measurements; fit: Fit }) {
         <cylinderGeometry args={[chestR*0.25,chestR*0.25,sleeveL,16]} />
         <meshStandardMaterial />
       </mesh>
-      {/* Legs */}
       <mesh position={[ 0.12, 0, 0]}>
         <cylinderGeometry args={[hipR*0.3, hipR*0.3, inseamL, 16]} />
         <meshStandardMaterial />
@@ -58,14 +51,12 @@ function Body({ m, fit }: { m: Measurements; fit: Fit }) {
 }
 
 export default function R3FBody({
-  m, fit, showDress, dressColor="white"
-}: { m: Measurements; fit: Fit; showDress?: boolean; dressColor?: string }) {
-
-  // Simple garment shell to visualize “ease”: a slightly inflated torso + skirt tube
+  m, showDress=false, dressColor="white"
+}: { m: Measurements; showDress?: boolean; dressColor?: string }) {
   function DressShell() {
-    const chestR = safeCircToRadius(m.bust + fit.bustEase + 4); // +4cm visual allowance
-    const hipR   = safeCircToRadius(m.hip + fit.hipEase + 4);
-    const torsoL = safeLen(m.torso + fit.torsoEase);
+    const chestR = safeCircToRadius(m.bust + 4);
+    const hipR   = safeCircToRadius(m.hip + 4);
+    const torsoL = safeLen(m.torsoLength);
     return (
       <group>
         <mesh position={[0, torsoL/2, 0]}>
@@ -77,11 +68,11 @@ export default function R3FBody({
   }
 
   return (
-    <div className="h-96 w-full rounded-lg border overflow-hidden">
+    <div className="h-96 w-full rounded-lg border overflow-hidden" data-testid="r3f-root">
       <Canvas camera={{ position: [0, 1.2, 3], fov: 50 }}>
         <ambientLight intensity={1} />
         <directionalLight position={[2,5,2]} intensity={0.9} />
-        <Body m={m} fit={fit} />
+        <Body m={m} />
         {showDress ? <DressShell /> : null}
         <OrbitControls enableDamping />
       </Canvas>
