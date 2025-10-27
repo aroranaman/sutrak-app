@@ -27,7 +27,7 @@ export default function MeasurementProfile({
   const [form, setForm] = React.useState<Measurements>({
     bust: toNum(measured.bust ?? 95.5),
     hip: toNum(measured.hip ?? 94.7),
-    shoulder: toNum(measured.shoulder ?? 44.5),
+    shoulderWidth: toNum(measured.shoulderWidth ?? 44.5),
     sleeve: toNum(measured.sleeve ?? 56),
     torso: toNum(measured.torso ?? 60),
     inseam: toNum(measured.inseam ?? 58),
@@ -117,11 +117,11 @@ export default function MeasurementProfile({
             <Input inputMode="decimal" value={form.hip} onChange={setField("hip")} />
           </div>
           <div>
-            <label className="text-sm mb-1 block">Shoulder (cm)</label>
+            <label className="text-sm mb-1 block">Shoulder Width (cm)</label>
             <Input
               inputMode="decimal"
-              value={form.shoulder}
-              onChange={setField("shoulder")}
+              value={form.shoulderWidth}
+              onChange={setField("shoulderWidth")}
             />
           </div>
           <div>
@@ -159,7 +159,6 @@ export default function MeasurementProfile({
       <div>
         <h2 className="text-xl font-semibold mb-2">3D Avatar Preview</h2>
         <AvatarCanvasShell
-          // show only the body with the corrected numbers (no ease UI)
           m={form}
           showDress={false}
         />

@@ -32,7 +32,7 @@ export interface MeasurementProfile {
   measurements: {
     bust: number;
     hip: number;
-    shoulder: number;
+    shoulderWidth: number;
     sleeve: number;
     torso: number;
     inseam: number;

@@ -5,7 +5,7 @@ import { Canvas } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
 
 export type Measurements = {
-  bust: number; hip: number; shoulderWidth: number; sleeveLength: number; torsoLength: number; inseam: number;
+  bust: number; hip: number; shoulderWidth: number; sleeve: number; torso: number; inseam: number;
 };
 
 function clamp(n:number,min:number,max:number){return Math.max(min,Math.min(max,n));}
@@ -15,8 +15,8 @@ function safeLen(cm:number){const v=Number.isFinite(cm)?cm:1; return clamp(v/10,
 function Body({ m }: { m: Measurements }) {
   const chestR = safeCircToRadius(m.bust);
   const hipR   = safeCircToRadius(m.hip);
-  const torsoL = safeLen(m.torsoLength);
-  const sleeveL= safeLen(m.sleeveLength);
+  const torsoL = safeLen(m.torso);
+  const sleeveL= safeLen(m.sleeve);
   const inseamL= safeLen(m.inseam);
   const shoulderW = clamp((m.shoulderWidth ?? 40)/100, 0.1, 1.4);
 
@@ -56,7 +56,7 @@ export default function R3FBody({
   function DressShell() {
     const chestR = safeCircToRadius(m.bust + 4);
     const hipR   = safeCircToRadius(m.hip + 4);
-    const torsoL = safeLen(m.torsoLength);
+    const torsoL = safeLen(m.torso);
     return (
       <group>
         <mesh position={[0, torsoL/2, 0]}>
