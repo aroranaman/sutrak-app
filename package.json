@@ -55,7 +55,6 @@
     "react-day-picker": "^8.10.1",
     "react-dom": "18.3.1",
     "react-hook-form": "^7.54.2",
-    "react-reconciler": "0.29.0",
     "recharts": "^2.15.1",
     "scheduler": "0.23.2",
     "tailwind-merge": "^3.0.1",
@@ -72,5 +71,10 @@
     "postcss": "^8",
     "tailwindcss": "^3.4.1",
     "typescript": "^5"
+  },
+  "overrides": {
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "react-reconciler": "0.31.0"
   }
 }
