@@ -1,58 +1,79 @@
 "use client";
-
 import * as React from "react";
 import dynamic from "next/dynamic";
-import type { Measurements } from "./R3FBody";
 
-const R3FBody = dynamic(() => import("./R3FBody"), {
-  ssr: false,
-  loading: () => <div className="h-96 w-full rounded-lg border animate-pulse" data-testid="r3f-loading" />,
-});
+type M = { bust:number; hip:number; shoulder:number; sleeve:number; torso:number; inseam:number };
 
-class CanvasErrorBoundary extends React.Component<{children:React.ReactNode},{err?:unknown}>{
-  constructor(p:any){super(p);this.state={};}
-  static getDerivedStateFromError(err:unknown){return {err};}
-  componentDidCatch(err:unknown){console.error("[AvatarCanvasShell] error:",err);}
-  render(){return this.state.err
-    ? <div className="h-96 w-full rounded-lg border flex items-center justify-center text-sm text-red-600">
-        Avatar preview failed to load. You can still save your measurements.
+function ErrorBoundary({ children }: { children: React.ReactNode }) {
+  const [err, setErr] = React.useState<Error | null>(null);
+  if (err) {
+    console.error("[AvatarCanvasShell] Render error:", err);
+    return (
+      <div className="p-3 text-sm text-red-600 border rounded">
+        Avatar preview failed to load.<br />
+        <span className="text-xs text-muted-foreground">
+          {err.message}
+        </span>
       </div>
-    : this.props.children;}
+    );
+  }
+  return (
+    <React.Suspense fallback={<div className="h-96 w-full rounded-lg border animate-pulse" />}>
+      <ErrorCatcher onError={setErr}>{children}</ErrorCatcher>
+    </React.Suspense>
+  );
 }
 
-export default function AvatarCanvasShell({
-  m,
-  showDress = false,
-  dressColor = "#8db3ff",
+function ErrorCatcher({
+  children,
+  onError,
 }: {
-  m: Measurements;
-  showDress?: boolean;
-  dressColor?: string;
+  children: React.ReactNode;
+  onError: (e: Error) => void;
 }) {
+  const ref = React.useRef(onError);
+  ref.current = onError;
+  return (
+    <React.ErrorBoundary fallbackRender={({ error }) => {
+      ref.current(error);
+      return null;
+    }}>
+      {children}
+    </React.ErrorBoundary>
+  ) as any;
+}
+
+// IMPORTANT: use a **relative** import so dev aliasing cannot drift
+const R3FBody = dynamic(() => import("./R3FBody"), {
+  ssr: false,
+  loading: () => <div className="h-96 w-full rounded-lg border animate-pulse" />,
+});
+
+export default function AvatarCanvasShell({ m }: { m: M }) {
   const [mounted, setMounted] = React.useState(false);
-  const [timeoutHit, setTimeoutHit] = React.useState(false);
 
   React.useEffect(() => {
-    setMounted(true);
-    const t = setTimeout(() => {
-      setTimeoutHit(true);
-      console.warn("[AvatarCanvasShell] R3F chunk still loading after 3s");
+    const id = setTimeout(() => {
+      if (!mounted) {
+        console.warn(
+          "[AvatarCanvasShell] R3F still not mounted after 3s — check the dynamic import path and /public/models/mannequin.glb"
+        );
+      }
     }, 3000);
-    return () => clearTimeout(t);
-  }, []);
-
-  if (!mounted) {
-    return <div className="h-96 w-full rounded-lg border animate-pulse" />;
-  }
+    return () => clearTimeout(id);
+  }, [mounted]);
 
   return (
-    <CanvasErrorBoundary>
-      <R3FBody m={m} showDress={showDress} dressColor={dressColor} />
-      {timeoutHit ? (
-        <p className="mt-2 text-xs text-muted-foreground">
-          If the preview doesn’t appear, it’s safe to proceed—saving will still work.
-        </p>
-      ) : null}
-    </CanvasErrorBoundary>
+    <div className="h-96 w-full rounded-lg border overflow-hidden">
+      <ErrorBoundary>
+        <R3FBody
+          m={m}
+          // let the child tell us it mounted
+          onReady={() => setMounted(true)}
+          showDress
+          dressColor="#8db3ff"
+        />
+      </ErrorBoundary>
+    </div>
   );
 }
