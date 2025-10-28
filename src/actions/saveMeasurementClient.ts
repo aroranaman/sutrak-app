@@ -27,16 +27,9 @@ export async function saveMeasurementClient(
   await spendMeasurement(user.uid);
   
   const userRef = doc(firestore, 'users', user.uid);
-  const measurementsRef = collection(userRef, 'measurements');
 
-  // 2. If spending was successful, proceed to save the measurement document.
+  // 2. If spending was successful, proceed to save/update the profile in the user's document.
   try {
-    await addDoc(measurementsRef, {
-      ...profile,
-      createdAt: serverTimestamp(),
-    });
-
-    // 3. Update the user's profiles array in their main document for easy access
     const userDocSnap = await getDoc(userRef);
     const existingProfiles = userDocSnap.exists() ? userDocSnap.data().profiles || [] : [];
     
@@ -55,8 +48,7 @@ export async function saveMeasurementClient(
     
     await setDoc(userRef, { profiles: updatedProfiles }, { merge: true });
 
-    // 4. Return the new balance from the server after deduction.
-    // The credit balance is already updated on the server by the API call.
+    // 3. Return the new balance from the server after deduction.
     // The client will get the new balance via the real-time listener in UserContext.
     const updatedUserDocSnap = await getDoc(userRef);
     const newBalance = updatedUserDocSnap.exists() ? updatedUserDocSnap.data().credits || 0 : 0;

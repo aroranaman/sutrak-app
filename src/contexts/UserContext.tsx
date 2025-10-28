@@ -14,6 +14,8 @@ import { useAuth, useFirestore, useDoc } from '@/firebase';
 import { doc, setDoc } from 'firebase/firestore';
 import { grantJoinBonusIfFirstLogin } from '@/lib/grantJoinBonus';
 import { ensureJoinBonus } from '@/lib/fixCredits';
+import { saveMeasurementClient } from '@/actions/saveMeasurementClient';
+import { useToast } from '@/hooks/use-toast';
 
 interface UserData {
   credits: number;
@@ -52,7 +54,7 @@ interface UserContextType {
   profiles: MeasurementProfile[];
   cart: CartItem[];
   loading: boolean;
-  addProfile: (profile: MeasurementProfile, newBalance: number) => void;
+  addProfile: (profile: MeasurementProfile) => Promise<void>;
   addCredits: (amount: number) => void;
   addToCart: (garment: Garment, fabric: Fabric) => void;
   removeFromCart: (itemId: string) => void;
@@ -65,6 +67,7 @@ const UserContext = createContext<UserContextType | undefined>(undefined);
 export const UserProvider = ({ children }: { children: ReactNode }) => {
   const { user: firebaseUser, loading: authLoading } = useAuth();
   const firestore = useFirestore();
+  const { toast } = useToast();
 
   const [user, setUser] = useState<User | null>(null);
   const [credits, setCredits] = useState(0);
@@ -175,19 +178,34 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
     setCart([]);
   };
 
-  const addProfile = (profile: MeasurementProfile, newBalance: number) => {
-    // This function now just updates the local state.
-    // The server update is handled by the action.
-    setProfiles(prev => {
-        const existingProfileIndex = prev.findIndex(p => p.name === profile.name);
-        if (existingProfileIndex > -1) {
-            const updatedProfiles = [...prev];
-            updatedProfiles[existingProfileIndex] = profile;
-            return updatedProfiles;
-        }
-        return [...prev, profile];
-    });
-    setCredits(newBalance);
+  const addProfile = async (profile: MeasurementProfile) => {
+    if (!firebaseUser) {
+        toast({
+            variant: "destructive",
+            title: "Not Logged In",
+            description: "You must be signed in to save a profile.",
+        });
+        throw new Error("NOT_LOGGED_IN");
+    }
+    
+    try {
+        const { balance } = await saveMeasurementClient(firebaseUser, profile);
+
+        // Update local state after successful save
+        setProfiles(prev => {
+            const existingProfileIndex = prev.findIndex(p => p.name === profile.name);
+            if (existingProfileIndex > -1) {
+                const updatedProfiles = [...prev];
+                updatedProfiles[existingProfileIndex] = profile;
+                return updatedProfiles;
+            }
+            return [...prev, profile];
+        });
+        setCredits(balance);
+    } catch (error: any) {
+        // Re-throw the error so the calling component can handle it (e.g., show a toast)
+        throw error;
+    }
   };
 
   const addCredits = (amount: number) => {
