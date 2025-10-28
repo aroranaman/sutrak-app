@@ -6,8 +6,6 @@ import type { Measurements } from "./R3FBody";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/firebase";
-import { saveMeasurementClient } from "@/actions/saveMeasurementClient";
 import { Loader2 } from "lucide-react";
 import { useUser } from "@/contexts/UserContext";
 
@@ -18,12 +16,9 @@ function toNum(v: string | number): number {
 
 export default function MeasurementProfile({
   measured,
-  profileName: initialName = "Profile 1",
 }: {
   measured: Partial<Measurements>;
-  profileName?: string;
 }) {
-  // Editable form state — defaults filled from machine values
   const [form, setForm] = React.useState<Measurements>({
     bust: toNum(measured.bust ?? 95.5),
     hip: toNum(measured.hip ?? 94.7),
@@ -33,11 +28,10 @@ export default function MeasurementProfile({
     inseam: toNum(measured.inseam ?? 58),
   });
 
-  const [name, setName] = React.useState(initialName);
+  const [name, setName] = React.useState("Profile 1");
   const [saving, setSaving] = React.useState(false);
   const { toast } = useToast();
-  const { user: firebaseUser } = useAuth();
-  const { addProfile } = useUser();
+  const { user, addProfile } = useUser();
 
   function setField<K extends keyof Measurements>(k: K) {
     return (e: React.ChangeEvent<HTMLInputElement>) =>
@@ -45,7 +39,7 @@ export default function MeasurementProfile({
   }
 
   async function handleSave() {
-    if (!firebaseUser) {
+    if (!user) {
       toast({
         variant: "destructive",
         title: "Not signed in",
@@ -64,12 +58,7 @@ export default function MeasurementProfile({
 
     setSaving(true);
     try {
-      const profileData = { name: name.trim(), measurements: form };
-      const result = await saveMeasurementClient(firebaseUser, profileData);
-      
-      // Update local state via context
-      addProfile(profileData, result.balance);
-
+      await addProfile({ name: name.trim(), measurements: form });
       toast({
         title: "Saved",
         description: "Measurement profile saved. 100 credits deducted.",
@@ -91,7 +80,6 @@ export default function MeasurementProfile({
 
   return (
     <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-      {/* Left column — form */}
       <div className="space-y-4">
         <h2 className="text-xl font-semibold">Check & correct your measurements</h2>
         <p className="text-sm text-muted-foreground">
@@ -155,7 +143,6 @@ export default function MeasurementProfile({
         </p>
       </div>
 
-      {/* Right column — avatar */}
       <div>
         <h2 className="text-xl font-semibold mb-2">3D Avatar Preview</h2>
         <AvatarCanvasShell
