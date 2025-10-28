@@ -2,50 +2,80 @@
 
 import * as React from "react";
 import { Canvas } from "@react-three/fiber";
-import { OrbitControls } from "@react-three/drei";
+import { OrbitControls, useGLTF } from "@react-three/drei";
 
 export type Measurements = {
   bust: number; hip: number; shoulderWidth: number; sleeve: number; torso: number; inseam: number;
 };
 
-function clamp(n:number,min:number,max:number){return Math.max(min,Math.min(max,n));}
-function safeCircToRadius(cm:number){const c=Number.isFinite(cm)?cm:1; return clamp(c/(2*Math.PI)/10,0.01,5);}
-function safeLen(cm:number){const v=Number.isFinite(cm)?cm:1; return clamp(v/10,0.1,10);}
+// crude helpers: convert circumference (cm) to relative scale (~meters)
+function circumToScale(cm: number, baseCirc = 95) {
+  // linear scale around a base circumference so 95 cm ≈ 1.0
+  const s = cm / baseCirc;
+  // clamp to something sane
+  return Math.min(Math.max(s, 0.6), 1.6);
+}
 
-function Body({ m }: { m: Measurements }) {
-  const chestR = safeCircToRadius(m.bust);
-  const hipR   = safeCircToRadius(m.hip);
-  const torsoL = safeLen(m.torso);
-  const sleeveL= safeLen(m.sleeve);
-  const inseamL= safeLen(m.inseam);
-  const shoulderW = clamp((m.shoulderWidth ?? 40)/100, 0.1, 1.4);
+function lengthToScale(cm: number, baseLen = 60) {
+  const s = cm / baseLen;
+  return Math.min(Math.max(s, 0.6), 1.6);
+}
+
+function Mannequin({
+  m, showDress=false, dressColor="#8db3ff"
+}: { m: Measurements; showDress?: boolean; dressColor?: string }) {
+  // Put your mannequin at: /public/models/mannequin.glb
+  // Good starting point: any T-pose, rigged neutral mannequin
+  const { scene } = useGLTF("/models/mannequin.glb"); // keep file small (<5–10MB)
+
+  // Find named groups/bones once
+  const root = React.useMemo(() => scene.clone(true), [scene]);
+
+  React.useEffect(() => {
+    // Example mapping: adjust torso/bust/hip breadth by scaling X/Z of chest & hips,
+    // adjust height-ish pieces by scaling Y on spine/legs/arms.
+    // You’ll need to tweak these names per your GLTF’s outliner.
+    const chest = root.getObjectByName("Spine2") || root.getObjectByName("Chest") || root;
+    const hips  = root.getObjectByName("Hips")   || root;
+    const leftUpperArm  = root.getObjectByName("LeftArm")  || root.getObjectByName("UpperArm_L");
+    const rightUpperArm = root.getObjectByName("RightArm") || root.getObjectByName("UpperArm_R");
+    const leftLeg  = root.getObjectByName("LeftUpLeg")  || root.getObjectByName("Thigh_L");
+    const rightLeg = root.getObjectByName("RightUpLeg") || root.getObjectByName("Thigh_R");
+    const spine    = root.getObjectByName("Spine") || root;
+
+    const bustScale = circumToScale(m.bust, 95);
+    const hipScale  = circumToScale(m.hip,  95);
+    const torsoY    = lengthToScale(m.torso, 60);
+    const sleeveY   = lengthToScale(m.sleeve, 56);
+    const inseamY   = lengthToScale(m.inseam, 58);
+    const shoulderX = lengthToScale(m.shoulderWidth, 44.5);
+
+    // widen/narrow chest & hips in X/Z
+    if (chest) chest.scale.set(bustScale, chest.scale.y, bustScale);
+    if (hips)  hips.scale.set(hipScale,  hips.scale.y,  hipScale);
+
+    // torso length (scale the spine on Y a bit)
+    if (spine) spine.scale.set(spine.scale.x, torsoY, spine.scale.z);
+
+    // arms length (very rough — you may want to adjust child bones instead)
+    if (leftUpperArm)  leftUpperArm.scale.set(shoulderX, sleeveY, leftUpperArm.scale.z);
+    if (rightUpperArm) rightUpperArm.scale.set(shoulderX, sleeveY, rightUpperArm.scale.z);
+
+    // legs / inseam (again rough demo)
+    if (leftLeg)  leftLeg.scale.set(leftLeg.scale.x, inseamY, leftLeg.scale.z);
+    if (rightLeg) rightLeg.scale.set(rightLeg.scale.x, inseamY, rightLeg.scale.z);
+  }, [root, m]);
 
   return (
     <group>
-      <mesh position={[0, torsoL/2, 0]}>
-        <cylinderGeometry args={[chestR*0.9, hipR, torsoL, 24]} />
-        <meshStandardMaterial />
-      </mesh>
-      <mesh position={[0, torsoL + chestR*0.8, 0]}>
-        <sphereGeometry args={[chestR*0.5, 24, 24]} />
-        <meshStandardMaterial />
-      </mesh>
-      <mesh position={[ shoulderW/2, torsoL*0.8, 0]} rotation={[0,0,Math.PI/2]}>
-        <cylinderGeometry args={[chestR*0.25,chestR*0.25,sleeveL,16]} />
-        <meshStandardMaterial />
-      </mesh>
-      <mesh position={[-shoulderW/2, torsoL*0.8, 0]} rotation={[0,0,Math.PI/2]}>
-        <cylinderGeometry args={[chestR*0.25,chestR*0.25,sleeveL,16]} />
-        <meshStandardMaterial />
-      </mesh>
-      <mesh position={[ 0.12, 0, 0]}>
-        <cylinderGeometry args={[hipR*0.3, hipR*0.3, inseamL, 16]} />
-        <meshStandardMaterial />
-      </mesh>
-      <mesh position={[-0.12, 0, 0]}>
-        <cylinderGeometry args={[hipR*0.3, hipR*0.3, inseamL, 16]} />
-        <meshStandardMaterial />
-      </mesh>
+      <primitive object={root} position={[0, -1.0, 0]} />
+      {showDress ? (
+        <mesh position={[0, 0, 0]}>
+          {/* optional translucent dress shell – swap for real garment later */}
+          <boxGeometry args={[1.1, 1.4, 0.8]} />
+          <meshStandardMaterial color={dressColor} transparent opacity={0.3} />
+        </mesh>
+      ) : null}
     </group>
   );
 }
@@ -53,29 +83,17 @@ function Body({ m }: { m: Measurements }) {
 export default function R3FBody({
   m, showDress=false, dressColor="white"
 }: { m: Measurements; showDress?: boolean; dressColor?: string }) {
-  function DressShell() {
-    const chestR = safeCircToRadius(m.bust + 4);
-    const hipR   = safeCircToRadius(m.hip + 4);
-    const torsoL = safeLen(m.torso);
-    return (
-      <group>
-        <mesh position={[0, torsoL/2, 0]}>
-          <cylinderGeometry args={[chestR, hipR, torsoL, 32]} />
-          <meshStandardMaterial color={dressColor} transparent opacity={0.35} />
-        </mesh>
-      </group>
-    );
-  }
-
   return (
-    <div className="h-96 w-full rounded-lg border overflow-hidden" data-testid="r3f-root">
-      <Canvas camera={{ position: [0, 1.2, 3], fov: 50 }}>
+    <div className="h-96 w-full rounded-lg border overflow-hidden">
+      <Canvas camera={{ position: [0, 1.4, 2.8], fov: 50 }}>
         <ambientLight intensity={1} />
         <directionalLight position={[2,5,2]} intensity={0.9} />
-        <Body m={m} />
-        {showDress ? <DressShell /> : null}
+        <Mannequin m={m} showDress={showDress} dressColor={dressColor} />
         <OrbitControls enableDamping />
       </Canvas>
     </div>
   );
 }
+
+// Preload (optional)
+useGLTF.preload("/models/mannequin.glb");

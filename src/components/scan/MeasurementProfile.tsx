@@ -19,6 +19,7 @@ export default function MeasurementProfile({
 }: {
   measured: Partial<Measurements>;
 }) {
+  // Editable form state — defaults filled from machine values
   const [form, setForm] = React.useState<Measurements>({
     bust: toNum(measured.bust ?? 95.5),
     hip: toNum(measured.hip ?? 94.7),
@@ -31,7 +32,7 @@ export default function MeasurementProfile({
   const [name, setName] = React.useState("Profile 1");
   const [saving, setSaving] = React.useState(false);
   const { toast } = useToast();
-  const { user, addProfile } = useUser();
+  const { addProfile, user } = useUser();
 
   function setField<K extends keyof Measurements>(k: K) {
     return (e: React.ChangeEvent<HTMLInputElement>) =>
@@ -58,6 +59,7 @@ export default function MeasurementProfile({
 
     setSaving(true);
     try {
+      // addProfile now handles the server call and local state update
       await addProfile({ name: name.trim(), measurements: form });
       toast({
         title: "Saved",
@@ -80,6 +82,7 @@ export default function MeasurementProfile({
 
   return (
     <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+      {/* Left column — form */}
       <div className="space-y-4">
         <h2 className="text-xl font-semibold">Check & correct your measurements</h2>
         <p className="text-sm text-muted-foreground">
@@ -143,6 +146,7 @@ export default function MeasurementProfile({
         </p>
       </div>
 
+      {/* Right column — avatar */}
       <div>
         <h2 className="text-xl font-semibold mb-2">3D Avatar Preview</h2>
         <AvatarCanvasShell
