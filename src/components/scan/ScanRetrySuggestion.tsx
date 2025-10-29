@@ -1,3 +1,4 @@
+
 'use client';
 import { suggestScanRetry } from '@/ai/flows/suggest-scan-retry';
 import { useState, useEffect } from 'react';

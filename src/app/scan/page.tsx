@@ -7,13 +7,15 @@ import ScanProcessing from '@/components/scan/ScanProcessing';
 import MeasurementProfile from '@/components/scan/MeasurementProfile';
 import { motion, AnimatePresence } from 'framer-motion';
 import Script from 'next/script';
+import ScanRetrySuggestion from '@/components/scan/ScanRetrySuggestion';
 
-type ScanStep = 'tutorial' | 'scanning' | 'processing' | 'results';
+type ScanStep = 'tutorial' | 'scanning' | 'retrySuggestion' | 'processing' | 'results';
 
 export default function ScanPage() {
   const [step, setStep] = useState<ScanStep>('tutorial');
   const [measurementResults, setMeasurementResults] = useState(null);
   const [scriptsLoaded, setScriptsLoaded] = useState(false);
+  const [isRetrying, setIsRetrying] = useState(false);
 
   const handleScriptsLoaded = useCallback(() => {
     setScriptsLoaded(true);
@@ -43,7 +45,7 @@ export default function ScanPage() {
     }
   };
   
-  const onScanComplete = (results: any) => {
+  const onScanComplete = (results: any, scanQuality: 'good' | 'poor') => {
     // Map the incoming detailed keys to the simplified keys expected by MeasurementProfile
     const mappedResults = {
       bust: results.upperTorsoCircumferenceCm,
@@ -54,10 +56,24 @@ export default function ScanPage() {
       inseam: results.inseamCm,
     };
     setMeasurementResults(mappedResults);
-    setStep('processing');
+
+    if (scanQuality === 'poor' && !isRetrying) {
+        setStep('retrySuggestion');
+    } else {
+        setStep('processing');
+    }
   };
 
   const onProcessingComplete = () => setStep('results');
+  
+  const handleRetry = () => {
+    setIsRetrying(true); // Flag that user is retrying, to bypass suggestion on next scan
+    setStep('scanning');
+  };
+
+  const handleProceed = () => {
+    setStep('processing');
+  };
 
   const pageVariants = {
     initial: { opacity: 0, y: 20 },
@@ -109,6 +125,18 @@ export default function ScanPage() {
               transition={pageTransition}
             >
               <ScanningUI onComplete={onScanComplete} />
+            </motion.div>
+          )}
+           {step === 'retrySuggestion' && (
+            <motion.div
+              key="retrySuggestion"
+              initial="initial"
+              animate="in"
+              exit="out"
+              variants={pageVariants}
+              transition={pageTransition}
+            >
+              <ScanRetrySuggestion onRetry={handleRetry} onProceed={handleProceed} />
             </motion.div>
           )}
           {step === 'processing' && (

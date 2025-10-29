@@ -11,20 +11,19 @@ import { useToast } from '@/hooks/use-toast';
 import ScanProcessing from './ScanProcessing';
 
 interface ScanningUIProps {
-  onComplete: (results: any) => void;
+  onComplete: (results: any, scanQuality: 'good' | 'poor') => void;
 }
 
 type ScanStage = 'idle' | 'starting' | 'countdown' | 'capturing' | 'processing';
 
-// Correct, accurate measurements as specified.
-// This simulates the result from a high-fidelity backend 3D Reconstruction Service.
-const correctMeasurements = {
-    bust: 95.2,
-    hip: 94.7,
-    shoulderWidth: 44.5,
-    sleeveLength: 56.0,
-    torsoLength: 60.0,
-    inseam: 58.0,
+// Inaccurate measurements to simulate a "poor" quality scan.
+const inaccurateMeasurements = {
+    bust: 91.5,
+    hip: 98.2,
+    shoulderWidth: 41.3,
+    sleeveLength: 54.1,
+    torsoLength: 62.5,
+    inseam: 56.8,
 };
 
 export default function ScanningUI({ onComplete }: ScanningUIProps) {
@@ -104,21 +103,16 @@ export default function ScanningUI({ onComplete }: ScanningUIProps) {
     setScanMessage('Scanning...');
     await new Promise(r => setTimeout(r, 5000)); // Simulate 360 capture
 
-    setScanStage('processing');
-
-    // Simulate backend processing time as per the architecture diagram (Recon, Draping, etc.)
-    setTimeout(() => {
-        // The backend service returns perfect, accurate measurements.
-        const finalMeasurements = {
-            upperTorsoCircumferenceCm: correctMeasurements.bust,
-            hipCircumferenceCm: correctMeasurements.hip,
-            shoulderWidthCm: correctMeasurements.shoulderWidth,
-            sleeveLengthCm: correctMeasurements.sleeveLength,
-            torsoLengthCm: correctMeasurements.torsoLength,
-            inseamCm: correctMeasurements.inseam,
-        };
-        onComplete(finalMeasurements);
-    }, 8000); // Match processing animation duration
+    // For this demonstration, we'll return inaccurate measurements to trigger the retry suggestion.
+    const finalMeasurements = {
+        upperTorsoCircumferenceCm: inaccurateMeasurements.bust,
+        hipCircumferenceCm: inaccurateMeasurements.hip,
+        shoulderWidthCm: inaccurateMeasurements.shoulderWidth,
+        sleeveLengthCm: inaccurateMeasurements.sleeveLength,
+        torsoLengthCm: inaccurateMeasurements.torsoLength,
+        inseamCm: inaccurateMeasurements.inseam,
+    };
+    onComplete(finalMeasurements, 'poor');
   };
 
   const runCountdown = (duration: number, message: string) => {
@@ -165,15 +159,8 @@ export default function ScanningUI({ onComplete }: ScanningUIProps) {
   };
   
   if (scanStage === 'processing') {
-      const processingMeasurements = {
-        upperTorsoCircumferenceCm: correctMeasurements.bust,
-        hipCircumferenceCm: correctMeasurements.hip,
-        shoulderWidthCm: correctMeasurements.shoulderWidth,
-        sleeveLengthCm: correctMeasurements.sleeveLength,
-        torsoLengthCm: correctMeasurements.torsoLength,
-        inseamCm: correctMeasurements.inseam,
-      };
-      return <ScanProcessing onComplete={() => onComplete(processingMeasurements)} />;
+      // This state is now handled in the page, but we keep a non-functional return just in case.
+      return null;
   }
 
   return (
@@ -252,5 +239,3 @@ export default function ScanningUI({ onComplete }: ScanningUIProps) {
     </Card>
   );
 }
-
-  
